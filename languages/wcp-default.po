@@ -1,0 +1,251 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: WHMCS Wordpress Integration\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-10-29 18:12-0500\n"
+"PO-Revision-Date: 2013-10-29 18:13-0500\n"
+"Last-Translator: Arnold Bailey <arnold@incsub.com>\n"
+"Language-Team: Arnold Bailey <arnold@incsub.com>\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-KeywordsList: __;_e;_n;_x;_ex;_nx;esc_attr__;esc_attr_e;esc_attr_x\n"
+"X-Poedit-Basepath: .\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Generator: Poedit 1.5.7\n"
+"X-Poedit-SearchPath-0: ..\n"
+
+#: ../whmcs-integration.php:32
+msgid ""
+"The WHMCS WordPress Integration plugin requires the PHP Curl extensions."
+msgstr ""
+
+#: ../whmcs-integration.php:202
+msgid ""
+"<p>WHMCS WordPress Integration can now sync certain cookies between WHMCS "
+"and Wordpress so that downloads of protected files from WHMCS can work "
+"correctly in WordPress.</p> <p>This requires copying the \"wp-integration.php"
+"\" file in this plugin to the root of the WHMCS System installation.</p>"
+msgstr ""
+
+#: ../whmcs-integration.php:211
+msgid "NEW - Permalinks Endpoint Slug"
+msgstr ""
+
+#: ../whmcs-integration.php:212
+msgid ""
+"<p>This is the slug that signals that the following page is to be pulled "
+"from the WHMCS site.</p> <p>You can change it to whatever you like to avoid "
+"interfering with other pages but like all slugs it should contain Only "
+"lowercase alphanumerics and the hyphen.</p>"
+msgstr ""
+
+#: ../whmcs-integration.php:223 ../whmcs-integration.php:235
+msgid "NEW - WHMCS WordPress Integration Cookie syncing"
+msgstr ""
+
+#: ../whmcs-integration.php:374
+msgid "WHMCS Integration"
+msgstr ""
+
+#: ../whmcs-integration.php:374
+msgid "WHMCS Integration "
+msgstr ""
+
+#: ../whmcs-integration.php:1091
+#, php-format
+msgid "Sorry this doesn't look like a WHMCS site at [%1$s]"
+msgstr ""
+
+#: ../whmcs-integration.php:1092
+msgid ""
+"  Make sure your WHMCS Integration settings are pointing to the correct URL "
+"and that the WHMCS site is set for the Portal template in Setup | General."
+msgstr ""
+
+#: ../whmcs-integration.php:1318
+msgid "WHMCS Wordpress Integration "
+msgstr ""
+
+#: ../whmcs-integration.php:1322
+msgid "Settings"
+msgstr ""
+
+#: ../whmcs-integration.php:1323
+msgid "Single Sign On"
+msgstr ""
+
+#: ../whmcs-integration.php:1363
+msgid "<div class=\"error\">PHP safe_mode is on </div>"
+msgstr ""
+
+#: ../whmcs-integration.php:1364
+msgid "<div class=\"error\">PHP open_basedir is on </div>"
+msgstr ""
+
+#: ../whmcs-integration.php:1365
+msgid ""
+"<div class=\"error\">WHMCS Integration cannot patch file wp-contents/class-"
+"http.php. Make sure it is writable</div>"
+msgstr ""
+
+#: ../whmcs-integration.php:1371
+msgid "WHMCS Wordpress Integration"
+msgstr ""
+
+#: ../whmcs-integration.php:1380
+msgid "Remote WHMCS Host:"
+msgstr ""
+
+#: ../whmcs-integration.php:1385
+msgid ""
+"If you use https: you must use the same mode on both the plugin and WHMCS "
+"sides."
+msgstr ""
+
+#: ../whmcs-integration.php:1390
+msgid "Default Content Page:"
+msgstr ""
+
+#: ../whmcs-integration.php:1396
+msgid "--Select the default content display page--"
+msgstr ""
+
+#: ../whmcs-integration.php:1407
+msgid "Endpoint Slug:"
+msgstr ""
+
+#: ../whmcs-integration.php:1411
+msgid "The endpoint slug to use to signal reference to a WHMCS page"
+msgstr ""
+
+#: ../whmcs-integration.php:1412
+msgid ""
+"Permalinks will be of the form <br />http://YOUR.DOMAIN/DEFAULT_PAGE/"
+"ENDPOINT/clientarea.php"
+msgstr ""
+
+#: ../whmcs-integration.php:1428
+msgid "WHMCS URL Encoder Tool"
+msgstr ""
+
+#: ../whmcs-integration.php:1436
+msgid "URL to encode:"
+msgstr ""
+
+#: ../whmcs-integration.php:1440
+msgid ""
+"All base urls at WHMCS must use the Remote WHMCS base url defined above.<br /"
+">Do not mix www.example.com and example.com urls."
+msgstr ""
+
+#: ../whmcs-integration.php:1445
+msgid "Encoded URL:"
+msgstr ""
+
+#: ../whmcs-integration.php:1462
+msgid "WHMCS Integration Shortcodes"
+msgstr ""
+
+#: ../whmcs-integration.php:1469
+msgid "WHMCS Main Content:"
+msgstr ""
+
+#: ../whmcs-integration.php:1474 ../whmcs-integration.php:1613
+msgid "Displays the primary content of a WHMCS page."
+msgstr ""
+
+#: ../whmcs-integration.php:1478
+msgid "WHMCS Welcome Box:"
+msgstr ""
+
+#: ../whmcs-integration.php:1483 ../whmcs-integration.php:1666
+msgid ""
+"Displays the current WHMCS user, my details and WHMCS logout link, If not "
+"logged in prompts for the user to login."
+msgstr ""
+
+#: ../whmcs-integration.php:1487
+msgid "WHMCS Top Menu:"
+msgstr ""
+
+#: ../whmcs-integration.php:1492 ../whmcs-integration.php:1718
+msgid ""
+"Displays the top menu from WHMCS. Note that you can style it with css as "
+"either a vertical or horizontal menu. In a sidebar it would default to "
+"vertical."
+msgstr ""
+
+#: ../whmcs-integration.php:1496
+msgid "WHMCS Quick Navigation:"
+msgstr ""
+
+#: ../whmcs-integration.php:1501 ../whmcs-integration.php:1873
+msgid ""
+"Displays the Quick Navigation links. Note that you can style it with css as "
+"either a vertical or horizontal menu. In a sidebar it would default to "
+"vertical."
+msgstr ""
+
+#: ../whmcs-integration.php:1505
+msgid "WHMCS Account Information:"
+msgstr ""
+
+#: ../whmcs-integration.php:1510 ../whmcs-integration.php:1822
+msgid ""
+"Displays the current logged in WHMCS user's account information. If no user "
+"is logged in it will display a login form and Knowledgebase search."
+msgstr ""
+
+#: ../whmcs-integration.php:1514
+msgid "WHMCS Statistics:"
+msgstr ""
+
+#: ../whmcs-integration.php:1519 ../whmcs-integration.php:1770
+msgid ""
+"Displays the current logged in WHMCS user's product statistics. If no user "
+"is logged in it will not be displayed."
+msgstr ""
+
+#: ../whmcs-integration.php:1545
+msgid "WHMCS Single Sign On"
+msgstr ""
+
+#: ../whmcs-integration.php:1551
+msgid "WHMCS Administrator ID:"
+msgstr ""
+
+#: ../whmcs-integration.php:1557
+msgid "WHMCS Administrator Password:"
+msgstr ""
+
+#: ../whmcs-integration.php:1636 ../whmcs-integration.php:1689
+#: ../whmcs-integration.php:1741 ../whmcs-integration.php:1793
+#: ../whmcs-integration.php:1844 ../whmcs-integration.php:1896
+msgid "New title"
+msgstr ""
+
+#: ../whmcs-integration.php:1640 ../whmcs-integration.php:1693
+#: ../whmcs-integration.php:1745 ../whmcs-integration.php:1797
+#: ../whmcs-integration.php:1848 ../whmcs-integration.php:1900
+msgid "Title:"
+msgstr ""
+
+#: ../lib/wpmudev-dash-notification.php:57
+#, php-format
+msgid ""
+"Easily get updates, support, and one-click WPMU DEV plugin/theme "
+"installations right from in your dashboard - <strong><a href=\"%s\" title="
+"\"Install Now &raquo;\">install the free WPMU DEV Dashboard plugin</a></"
+"strong>. &nbsp;&nbsp;&nbsp;<small><a href=\"http://premium.wpmudev.org/wpmu-"
+"dev/update-notifications-plugin-information/\">(find out more)</a></small>"
+msgstr ""
+
+#: ../lib/wpmudev-dash-notification.php:61
+#, php-format
+msgid ""
+"Updates, Support, Premium Plugins, Community - <strong><a href=\"%s\" title="
+"\"Activate Now &raquo;\">activate the WPMU DEV Dashboard plugin now</a></"
+"strong>."
+msgstr ""

@@ -1,0 +1,40 @@
+/**
+* @package WHMCS WordPress Integration
+* @author Arnold Bailey
+* @since version 1.1.0
+* @license GPL2+
+*/
+
+.whmcs_error {
+	border-radius: 3px;
+	border: 1px solid #FF0000;
+	background-color: #FFBCBC;
+	padding: 5px 10px;
+	margin: 5px 0px 10px;
+	font-size: 1.2em;
+}
+
+td{
+	min-width: 30px;
+}
+
+/* Added a WHMCS v5.2.5 to make popup relative to the form instead of the whole page in the modern and slider order form. */
+#content_left{
+	position: relative;
+}
+
+/* horizontal if in the main contents */
+#content .whmcs_menu ul {
+	padding: 0;
+}
+
+#content .whmcs_menu li {
+	float: left;
+	list-style: none outside none;
+	padding: 3px 10px 3px 0;
+}
+
+#domainresults{
+	display: block;
+}
+

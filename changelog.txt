@@ -1,0 +1,147 @@
+Plugin Name: WHMCS Wordpress Integration
+Author: Arnold Bailey
+
+== Change Log ==
+
+==1.2.0.5==
+- An extra "s" crept into the name of the plugin subdirectory "whmcs-wordpressS-integration" instead of "whmcs-wordpress-integration".
+  This could cause two copies of the plugin to be installed so check that there is only a single copy.
+
+==1.2.0.4==
+- Patches for class-http.php to support WordPress 3.7.1
+
+==1.2.0.3==
+- "search" in query string was confusing whether to chose a WHMCS or WordPress search in bulktransfer and bulkregister.
+- Added ?ver=xxxx to captcha image url to try to disable more caches. CloudFlare appears to cache no matter what.
+
+==1.2.0.2==
+- Patches for class-http.php to support WordPress 3.7
+
+==1.2.0.1==
+- Byte Order Mark in one file causing header sent errors.
+
+==1.2.0==
+- Pretty permalinks for WHMCS addresses! Uses a definable endpoint slug to signal when a WHMCS page is referenced from Wordpress.
+- Added session cookie syncing so that downloads and other "login required" file downloading will work properly.
+	Requires wp-integration.php installed on the root of the WHMCS install.
+- Handles Announcement, Knowledgebase and Downloads better.
+- Properly supports default page as Static Front Page
+- Updated widgets for newer versions of WHMCS (v5.2)
+- Added WHMCS_PAYPAL_SANDBOX define. Add "define('WHMCS_PAYPAL_SANDBOX', true);" to wp-config.php. Allows testing "paypal" (not paypal express) gateway against the sandbox account.
+
+==1.1.4.4==
+- Patches for class-http.php in Wordpress 3.5.2
+- the_content filter for &#038;
+
+==1.1.4.3==
+- The WHMCS 302 redirect bug is back in WHMCS 5.2.5 Requires a GET on 302 redirect.
+
+==1.1.4.2==
+- Added CSS to reposition the domain registration popup in the order-modern and order-slider form. It was appearing out of the viewport in WHMCS 5.2.4.
+
+==1.1.4.1==
+- Added get "getkbarticles" as ajax trigger. Fixes problem with background knowledgebase lookup on submit tickets from returning 0
+
+==1.1.4==
+- WHMCS fixed their old bug of requiring a GET on a 302 redirect. Now properly follows the original request for 302 and requires GET for 307
+- Added more debugging code. define ('WHMCS_INTEGRATION_DEBUG', true); to turn on debug messages.
+- Added filter 'whmcs_get_args' which can be used to add query string parameters to the remote host like systpl=portal&language=german defaults to systpl=portal
+
+==1.1.3.8==
+- Changed handling of local SSL certificates.
+
+==1.1.3.7==
+- Added some css to help out Chrome problems.
+
+==1.1.3.6==
+- Changed <script> search path in XML
+
+==1.1.3.5==
+- Fixed some non relative urls that were redirecting incorrectly.
+- Got the built in captcha working across net.
+
+==1.1.3.4==
+- Added viewquote.php to unfiltered pages.
+- Fixed javascript on new viewquote page.
+
+==1.1.3.3==
+- Added debug code for improper UTF-8 encoding
+- Added redirection to return and cancel_return urls for PayPal button forms.
+
+==1.1.3.2==
+- Fixed mixed single and double quotes problem in Server Status
+- Script encoder not requiring a match with the remote_host base url.
+- Added warnings on mixing http: and https: in the plugin/WHMCS combination.
+- Added warning about encoding with the smae Remote WHMCS base url.
+
+
+==1.1.3 ==
+- Change encoding to return full url to the default page.
+- Display host IP on Settings screen
+- Added warnings for safe_mode, open_basedir and unable to write to class-http.
+
+== 1.1.2 ==
+- More patches for WP v3.4.1 (header filter broken causing 413 error)
+- method="get" => method="post" for verticalsteps orderform. Don't need to patch templates on WHMCS
+- Added titles to widgets.
+- Cleaned up debug display.
+- converted $ => jQuery in some scripts for no conflict mode.
+
+== 1.1.1 ==
+- Fixed non relative urls in the Knowledgebase breadcrumbs.
+- In order to fix some badly formed urls coming from WHMCS templates a number of -.tpl file need their method="get" changed to method="post".
+- Files that need editing as of WHMCS version 5.3 are:
+	templates/orderforms/verticalsteps/addons.tpl line 11
+	templates/orderforms/verticalsteps/adddomain.tpl line 11
+	templates/orderforms/verticalsteps/domainrenewals.tpl line 11
+	templates/orderforms/verticalsteps/products.tpl line 11
+	templates/orderforms/boxes/products.tpl line 7
+
+== 1.1 ==
+- Back peddled on the base64 encoding. Some javascript was building urls from variables and tacking extra &name=value items to the end of the url.
+This messed up the encoding and broke things like the remove link on the order forms.
+- New scheme to avoid the http security filters is to rename the "http://" and "https://" in front of the url to "whmcs://" and "whmcss://"
+The plugin automatically translates back and forth.
+- Repaired whmcs translation on ajax calls.
+- Added javascript caching and patching to fix WHMCS non-standard javascript file and redirect posts.
+- Fixed class-http patch for WPv3.4
+- Left the URL encoder in except it now does urlencode as before instead of base 64.
+
+== 1.0.5 ==
+- Added Default Content Page to settings. When set this is the page that wHMCS menu items will go to when clicked.
+Assuming it has a content shortcode there it will display the content.
+
+= 1.0.4 =
+- Because of some security filters that trigger on the "http://" on shared servers like Hostgator the redirect urls are now
+base64 encoded to prevent triggering the filter.
+
+- Added a base64 encoder to the Settings so users can easily encode a direct url such as a product url.
+
+= 1.0.3.5 =
+- Changed debug code to remove the <base> tag so relative urls don't go to the wrong place.
+- Trigger debug with "&whmcsportal[debug]=true" added to the end of the WP redirected url
+
+= 1.0.3.4 =
+- Added debug code for remote debugging.
+
+= 1.0.3.3 =
+- Added X_Forwarded-For header.
+
+= 1.0.3.2 =
+- Corrected the WDP ID number
+
+= 1.0.3.1 =
+- corrected misloading of some WHMCS stylesheets.
+
+= 1.0.3 = 2012-03-26
+- Setup AJAX for cross domain retrieval of javascript requests.
+- Added detection for safe_mode and open_basedir PHP settings which affect cURLs redirect handling.
+
+= 1.0.2 = 2012-03-26
+- Fixed saveHTML problem with older PHP
+
+= 1.0.1 =
+- Fixed crashes on earlier versions of PHP
+
+= 1.0 =
+- Initial public release
