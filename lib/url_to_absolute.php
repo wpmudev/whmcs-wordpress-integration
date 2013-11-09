@@ -66,7 +66,7 @@
 */
 
 if (! function_exists('url_to_absolute')){
-	
+
 	function url_to_absolute( $baseUrl, $relativeUrl )
 	{
 		// If relative URL has a scheme, clean path and return.
@@ -320,6 +320,7 @@ if (! function_exists('url_to_absolute')){
 		else if ( !empty( $m[5] ) )	$parts['host']    = '';
 		if ( !empty($m[17]) )		$parts['port']    = $m[18];
 
+		$parts['path'] = ''; //prevents notice on empty path
 		if ( !empty($m[19]) )		$parts['path']    = $m[19];
 		else if ( !empty($m[21]) )	$parts['path']    = $m[21];
 		else if ( !empty($m[25]) )	$parts['path']    = $m[25];

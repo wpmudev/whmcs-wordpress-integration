@@ -3,6 +3,12 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.0.6==
+- Fixed problem with Pre- Sales Contact form returning 404
+- Filtered extraneous apostrophe in WHMCS v5.2 /templates/portal/clientareadomains.tpl line 34
+- Reworked admin settings page to work in server circumstances where schemes are forbidden in the query strings.
+- Added some more error checking on the options validation.
+
 ==1.2.0.5==
 - An extra "s" crept into the name of the plugin subdirectory "whmcs-wordpressS-integration" instead of "whmcs-wordpress-integration".
   This could cause two copies of the plugin to be installed so check that there is only a single copy.

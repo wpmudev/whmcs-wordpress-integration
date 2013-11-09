@@ -7,7 +7,7 @@ Author: Arnold Bailey {Incsub)
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.0.5
+Version: 1.2.0.6
 Network: false
 WDP ID: 263
 */
@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 if(!function_exists('curl_init'))
 exit( __('The WHMCS WordPress Integration plugin requires the PHP Curl extensions.', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.0.5');
+define('WHMCS_INTEGRATION_VERSION','1.2.0.6');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -124,32 +124,15 @@ class WHMCS_Wordpress_Integration{
 
 	public $pending_cookies = '';
 
+	public $WHMCS_PORTAL = 'whmcsportal';
+
 	/**
 	* Constructor
 	*
 	*/
 	function __construct(){
 
-		if ( defined('WHMCS_INTEGRATION_DEBUG') && WHMCS_INTEGRATION_DEBUG ) $this->debug = true;
-
-		$this->settings = get_option(WHMCS_SETTINGS_NAME);
-		$this->remote_host = url_to_absolute($this->settings['remote_host'],'');
-
-		if(empty($this->settings['endpoint'] ) ) {
-			$this->settings['endpoint'] = 'whmcsportal';
-			update_option(WHMCS_SETTINGS_NAME, $this->settings);
-		}
-
-		define('WHMCS_PORTAL', $this->settings['endpoint']);
-
-		$this->whmcs_base = $this->remote_host;
-		$this->remote_parts = split_url($this->whmcs_base);
-
-		$this->http_remote = str_ireplace('https:', 'http:', $this->remote_host);
-		$this->https_remote = str_ireplace('http:', 'https:', $this->remote_host);
-
-		$this->content_page_id = (is_numeric($this->settings['content_page'])) ?  intval($this->settings['content_page']) : 0;
-
+		$this->init_properties();
 		$this->http_patch();
 
 		register_activation_hook(__FILE__,array(&$this,'on_activate'));
@@ -157,7 +140,6 @@ class WHMCS_Wordpress_Integration{
 
 		add_action('init', array(&$this,'on_init'));
 		add_action('wp_loaded', array(&$this,'on_wp_loaded'));
-		add_action('admin_init', array(&$this,'on_admin_init'));
 		add_action('admin_menu', array(&$this,'on_admin_menu'));
 		add_action('wp_enqueue_scripts', array(&$this,'on_enqueue_scripts'));
 
@@ -173,6 +155,8 @@ class WHMCS_Wordpress_Integration{
 		add_filter('http_request_timeout', array(&$this,'on_timeout'));
 		add_filter('https_ssl_verify', array(&$this,'ssl_verify'));
 		add_filter('https_local_ssl_verify', array(&$this,'ssl_verify'));
+
+		add_filter('whitelist_options', array(&$this,'on_whitelist_options'));
 
 		add_filter('the_content', array(&$this,'on_the_content'),1,9999);
 
@@ -193,6 +177,34 @@ class WHMCS_Wordpress_Integration{
 		add_action('wp_ajax_twitterfeed',array(&$this,'whmcs_ajax'));
 		add_action('wp_ajax_nopriv_twitterfeed',array(&$this,'whmcs_ajax'));
 
+	}
+
+	function init_properties(){
+
+		if ( defined('WHMCS_INTEGRATION_DEBUG') && WHMCS_INTEGRATION_DEBUG ) $this->debug = true;
+
+		$this->settings = get_option(WHMCS_SETTINGS_NAME);
+
+		//cleanup
+		@$this->remote_host = $this->settings['remote_host'] = url_to_absolute( $this->settings['remote_host'],'./');
+		@$this->content_page_id = $this->settings['content_page'] = (is_numeric($this->settings['content_page'])) ?  intval($this->settings['content_page']) : 0;
+		$this->settings['encode_url'] = empty($this->settings['encode_url']) ?  $this->settings['remote_host'] : $this->settings['encode_url'];
+		$this->settings['http_sig'] = empty($this->settings['http_sig']) ? 0 : $this->settings['http_sig'];
+
+		$this->endpoint = $this->settings['endpoint'] = empty($this->settings['endpoint']) ? 'whmcsportal' : $this->settings['endpoint'];
+
+		update_option(WHMCS_SETTINGS_NAME, $this->settings);
+
+		$this->WHMCS_PORTAL = $this->settings['endpoint'];
+
+		$this->whmcs_base = $this->remote_host;
+
+		$this->remote_parts = split_url($this->whmcs_base);
+
+		$this->http_remote = str_ireplace('https:', 'http:', $this->remote_host);
+		$this->https_remote = str_ireplace('http:', 'https:', $this->remote_host);
+
+		return $this->settings;
 	}
 
 	function wp_pointer_load(){
@@ -266,7 +278,7 @@ class WHMCS_Wordpress_Integration{
 		//Activation if needed.
 
 		// add endpoints for front end special pages
-		add_rewrite_endpoint(WHMCS_PORTAL,
+		add_rewrite_endpoint($this->WHMCS_PORTAL,
 		EP_PAGES
 		| EP_ROOT
 		//| EP_PERMALINK
@@ -291,7 +303,7 @@ class WHMCS_Wordpress_Integration{
 	function on_init(){
 
 		// add endpoints for front end special pages
-		add_rewrite_endpoint(WHMCS_PORTAL,
+		add_rewrite_endpoint($this->WHMCS_PORTAL,
 		EP_PAGES
 		| EP_ROOT
 		//| EP_PERMALINK
@@ -355,24 +367,6 @@ class WHMCS_Wordpress_Integration{
 
 		wp_register_style($cookie->name, $this->remote_host . 'wp-integration.php', array(), $ver );
 		wp_enqueue_style($cookie->name);
-	}
-
-	/**
-	* on_admin_init -
-	*
-	*/
-	function on_admin_init(){
-		register_setting(WHMCS_TEXT_DOMAIN,WHMCS_SETTINGS_NAME);
-	}
-
-	/**
-	* on_admin_menu - Add network menu for this plugin
-	*
-	*/
-	function on_admin_menu() {
-		if( function_exists( 'add_menu_page' ) ){
-			add_menu_page(__('WHMCS Integration',WHMCS_TEXT_DOMAIN), __('WHMCS Integration ',WHMCS_TEXT_DOMAIN), 'manage_options', 'wcp-settings',array($this,'admin_pages'));
-		}
 	}
 
 	/**
@@ -767,6 +761,9 @@ class WHMCS_Wordpress_Integration{
 			$text = str_replace('https://www.paypal.com/cgi-bin/webscr', 'https://www.sandbox.paypal.com/cgi-bin/webscr', $text);
 		}
 
+		//WHMCS v5.2 Extra apostrophe confuses some browsers /templates/portal/clientareadomains.tpl line 34
+		$text = preg_replace('#(domaindetails&id=\d+)\'(\">)#','$1$2', $text);
+
 		$text = str_replace('jQuery("#domainresults").slideUp();', '//jQuery("#domainresults").slideUp();', $text );
 
 
@@ -848,14 +845,14 @@ class WHMCS_Wordpress_Integration{
 
 
 		//Add any vars your going to be receiving from WHMCS
-		//$vars[] = WHMCS_PORTAL; //WHMCS data array
+		//$vars[] = $this->WHMCS_PORTAL; //WHMCS data array
 
 		return $vars;
 	}
 
 	function on_request($vars){
 
-		//if(isset($vars[WHMCS_PORTAL]) ) $vars[WHMCS_PORTAL] = true;
+		//if(isset($vars[$this->WHMCS_PORTAL]) ) $vars[$this->WHMCS_PORTAL] = true;
 
 		foreach($this->query_filter as $var){
 
@@ -881,21 +878,22 @@ class WHMCS_Wordpress_Integration{
 	function on_parse_request($wp){
 
 		// If no whmcs data then not for us
-		if( empty($wp->query_vars[WHMCS_PORTAL]) ) return;
+		if( empty($wp->query_vars[$this->WHMCS_PORTAL]) ) return;
 
 		$this->debug = ($this->debug) ? $this->debug : isset($_REQUEST['debug']) && ($_REQUEST['debug'] == 'true');
+
+		if($this->debug) $this->debug_print($wp);
 
 		//WHMCS equvalent
 
 		$query_string = isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
 
-		$this->whmcsportal['page'] = url_to_absolute($this->whmcs_base, $wp->query_vars[WHMCS_PORTAL] .'?' . $query_string );
-		$this->whmcsportal['script'] = $wp->query_vars[WHMCS_PORTAL];
+		$this->whmcsportal['page'] = url_to_absolute($this->whmcs_base, $wp->query_vars[$this->WHMCS_PORTAL] .'?' . $query_string );
+		$this->whmcsportal['script'] = $wp->query_vars[$this->WHMCS_PORTAL];
 		$this->whmcsportal['query'] = $query_string;
 
 		//Remove query_vars variable so it's not confused for a WP function
-		unset($wp->query_vars['search']); //Remove so it doesn't interfer with Static Front Page
-		unset($wp->query_vars[WHMCS_PORTAL]); //Remove so it doesn't interfer with Static Front Page
+		$wp->query_vars = array(); //Remove so it doesn't interfer with Static Front Page
 
 		//This has something to do with WHMCS so pull the page now for use later in the shortcodes
 		$this->load_whmcs_url(urldecode($this->whmcsportal['page']));
@@ -936,12 +934,12 @@ class WHMCS_Wordpress_Integration{
 		$whmcs_parts = split_url($path);
 
 		//Remove the matching  part of the remote and local path
-		$whmcs_parts['path'] = '/' . implode('', explode($this->remote_parts['path'], $whmcs_parts['path'], 2));
+		@$whmcs_parts['path'] = '/' . implode('', explode($this->remote_parts['path'], $whmcs_parts['path'], 2));
 
 		if($this->content_page_id == 0) $parts = split_url($_SERVER['REQUEST_URI']);
 		else $parts = split_url(get_permalink($this->content_page_id));
 
-		$parts['path'] .= WHMCS_PORTAL . trailingslashit( $whmcs_parts['path']);
+		$parts['path'] .= $this->WHMCS_PORTAL . trailingslashit( $whmcs_parts['path']);
 
 		$parts['query'] = isset($whmcs_parts['query']) ? $whmcs_parts['query'] : '';
 
@@ -1247,7 +1245,7 @@ class WHMCS_Wordpress_Integration{
 		if (empty($this->dom)){
 			$this->settings = get_option(WHMCS_SETTINGS_NAME);
 
-			if( get_query_var(WHMCS_PORTAL) ){
+			if( get_query_var($this->WHMCS_PORTAL) ){
 				$result = $this->load_whmcs_url(urldecode($this->whmcsportal['page']));
 			} else{
 				$result = $this->load_whmcs_url($this->settings['remote_host'] . '?' . apply_filters('whmcs_get_args', 'systpl=portal') );
@@ -1326,21 +1324,26 @@ class WHMCS_Wordpress_Integration{
 	}
 
 	/**
+	* on_admin_menu - Add network menu for this plugin
+	*
+	*/
+	function on_admin_menu() {
+		$this->top_menu = add_menu_page(__('WHMCS Integration',WHMCS_TEXT_DOMAIN), __('WHMCS Integration ',WHMCS_TEXT_DOMAIN), 'manage_options', 'wcp-settings', array($this,'admin_pages') );
+
+		//Register the settings array
+		register_setting( $this->top_menu, WHMCS_SETTINGS_NAME);
+	}
+
+	/**
 	* admin_pages - Displays the Admin settings page.
 	*
 	*/
 	function admin_pages(){
 
-		if(isset($_POST['wcp_wpnonce']) && wp_verify_nonce($_POST['wcp_wpnonce'],'wcp_admin')){
-			$settings = get_option(WHMCS_SETTINGS_NAME);
-			//if($_POST['wcp']['whmcs_password'] == '**********')  unset($_POST['wcp']['whmcs_password']);
-			$settings = array_replace($settings, $_POST['wcp']);
-			$settings['remote_host'] = url_to_absolute($settings['remote_host'],'./');
-			update_option(WHMCS_SETTINGS_NAME, $settings);
+		if( isset($_GET['settings-updated']) ){
 			$this->on_activate();
-			echo '<div class="updated fade"><p>Settings Updated</p></div>';
+			echo '<div class="updated fade"><p>WHMCS Integration Settings Updated</p></div>';
 		}
-		$this->settings = get_option(WHMCS_SETTINGS_NAME);
 
 		$this->admin_settings_page(); return;
 
@@ -1350,6 +1353,14 @@ class WHMCS_Wordpress_Integration{
 			case 'sso' : $this->admin_sso_page(); break;
 			default: $this->admin_settings_page(); break;
 		}
+	}
+
+	function on_whitelist_options( $whitelist_options){
+
+		if(isset( $_POST[WHMCS_SETTINGS_NAME] ) )
+		$_POST[WHMCS_SETTINGS_NAME] = array_replace( $this->settings, $_POST[WHMCS_SETTINGS_NAME]);
+
+		return $whitelist_options;
 	}
 
 	/**
@@ -1365,11 +1376,11 @@ class WHMCS_Wordpress_Integration{
 
 			<?php $this->tabs(); ?>
 			<div id="poststuff" class="metabox-holder">
-				<form method="POST" action="">
+				<form method="POST" action="options.php">
 					<div class="postbox">
 						<h3 class="hndle"><?php _e('WHMCS Wordpress Integration',WHMCS_TEXT_DOMAIN); ?></h3>
 						<div class="inside">
-							<?php wp_nonce_field('wcp_admin','wcp_wpnonce'); ?>
+							<?php settings_fields( $this->top_menu ); ?>
 							<table class="form-table">
 								<thead>
 								</thead>
@@ -1379,9 +1390,9 @@ class WHMCS_Wordpress_Integration{
 											<?php _e('Remote WHMCS Host:',WHMCS_TEXT_DOMAIN); ?>
 										</th>
 										<td>
-											<input type="text" name="wcp[remote_host]" size="40" value="<?php echo esc_attr($this->settings['remote_host']); ?>" />
+											<input type="text" name="wcp_settings[remote_host]" size="40" value="<?php echo esc_attr($this->settings['remote_host']); ?>" />
 											<?php echo 'IP: ' . gethostbyname(parse_url($this->settings['remote_host'], PHP_URL_HOST)); ?>
-											<br /><span class="description"><?php _e('If you use https: you must use the same mode on both the plugin and WHMCS sides.',WHMCS_TEXT_DOMAIN); ?>  </span>
+											<br /><span class="description"><?php _e('The URL you set in THE WHMCS System URL. If you use https: you must use the same mode in both the plugin and WHMCS.<br />Whether you use http: or https: leave the SSL System URL blank in WHMCS.', WHMCS_TEXT_DOMAIN); ?>  </span>
 										</td>
 									</tr>
 									<tr>
@@ -1389,7 +1400,7 @@ class WHMCS_Wordpress_Integration{
 											<?php _e('Default Content Page:',WHMCS_TEXT_DOMAIN); ?>
 										</th>
 										<td>
-											<select name="wcp[content_page]">
+											<select name="wcp_settings[content_page]">
 												<?php
 												$pages = get_pages();
 												echo '<option value="0">' . __('--Select the default content display page--', WHMCS_TEXT_DOMAIN) . "</option>\n";
@@ -1399,6 +1410,7 @@ class WHMCS_Wordpress_Integration{
 												}
 												?>
 											</select>
+											<br /><span class="description"><?php _e('This is your default content page which contains the [wcp_content] shortcode.', WHMCS_TEXT_DOMAIN); ?>  </span>
 										</td>
 									</tr>
 									<tr>
@@ -1406,7 +1418,7 @@ class WHMCS_Wordpress_Integration{
 											<?php _e('Endpoint Slug:',WHMCS_TEXT_DOMAIN); ?>
 										</th>
 										<td>
-											<input type="text" id="wcp-endpoint" name="wcp[endpoint]" size="40" value="<?php esc_attr_e( $this->settings['endpoint']); ?>" />
+											<input type="text" id="wcp-endpoint" name="wcp_settings[endpoint]" size="40" value="<?php esc_attr_e( $this->settings['endpoint']); ?>" />
 											<br /><span class="description"><?php _e('The endpoint slug to use to signal reference to a WHMCS page',WHMCS_TEXT_DOMAIN); ?>
 											<br /><?php _e('Permalinks will be of the form <br />http://YOUR.DOMAIN/DEFAULT_PAGE/ENDPOINT/clientarea.php',WHMCS_TEXT_DOMAIN); ?></span>
 										</td>
@@ -1432,16 +1444,16 @@ class WHMCS_Wordpress_Integration{
 								<tbody>
 									<tr>
 										<th>
-											<?php _e('URL to encode:',WHMCS_TEXT_DOMAIN); ?>
+											<?php _e('URL at WHMCS to encode:',WHMCS_TEXT_DOMAIN); ?>
 										</th>
 										<td>
-											<input type="text" name="wcp[encode_url]" value="<?php echo esc_attr($this->settings['encode_url']); ?>" style="width:100%" />
+											<input type="text" name="wcp_settings[encode_url]" value="<?php echo esc_attr($this->settings['encode_url']); ?>" style="width:100%" />
 											<br /><span class="description"><?php _e('All base urls at WHMCS must use the Remote WHMCS base url defined above.<br />Do not mix www.example.com and example.com urls.',WHMCS_TEXT_DOMAIN); ?>  </span>
 										</td>
 									</tr>
 									<tr>
 										<th>
-											<?php _e('Encoded URL:',WHMCS_TEXT_DOMAIN); ?>
+											<?php _e('WordPress Encoded URL:',WHMCS_TEXT_DOMAIN); ?>
 										</th>
 										<td>
 											<?php
@@ -1549,13 +1561,13 @@ class WHMCS_Wordpress_Integration{
 								<tr>
 									<th><?php _e('WHMCS Administrator ID:',WHMCS_TEXT_DOMAIN); ?></th>
 									<td>
-										<input type="text" name="wcp[whmcs_admin]" size="40" value="<?php echo esc_attr($this->settings['whmcs_admin']); ?>" />
+										<input type="text" name="wcp_settings[whmcs_admin]" size="40" value="<?php echo esc_attr($this->settings['whmcs_admin']); ?>" />
 									</td>
 								</tr>
 								<tr>
 									<th><?php _e('WHMCS Administrator Password:',WHMCS_TEXT_DOMAIN); ?></th>
 									<td>
-										<input type="password" name="wcp[whmcs_password]" size="40" value="**********" autocomplete="off" />
+										<input type="password" name="wcp_settings[whmcs_password]" size="40" value="**********" autocomplete="off" />
 									</td>
 								</tr>
 								<tr>
@@ -1985,4 +1997,3 @@ function str_getcsv($input, $delimiter=',', $enclosure='"', $escape=null, $eol=n
 	return $r;
 }
 endif;
-
