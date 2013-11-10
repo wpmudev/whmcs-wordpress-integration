@@ -7,7 +7,7 @@ Author: Arnold Bailey {Incsub)
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.0.6
+Version: 1.2.0.7
 Network: false
 WDP ID: 263
 */
@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 if(!function_exists('curl_init'))
 exit( __('The WHMCS WordPress Integration plugin requires the PHP Curl extensions.', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.0.6');
+define('WHMCS_INTEGRATION_VERSION','1.2.0.7');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -210,6 +210,8 @@ class WHMCS_Wordpress_Integration{
 	function wp_pointer_load(){
 
 		//var_dump(get_current_screen());
+		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-portal.css', array(), WHMCS_INTEGRATION_VERSION );
+		wp_enqueue_style('whmcs_portal');
 
 		$cookie_content = __('<p>WHMCS WordPress Integration can now sync certain cookies between WHMCS and Wordpress so that downloads of protected files from WHMCS can work correctly in WordPress.</p> <p>This requires copying the "wp-integration.php" file in this plugin to the root of the WHMCS System installation.</p>', WHMCS_TEXT_DOMAIN);
 
@@ -892,8 +894,11 @@ class WHMCS_Wordpress_Integration{
 		$this->whmcsportal['script'] = $wp->query_vars[$this->WHMCS_PORTAL];
 		$this->whmcsportal['query'] = $query_string;
 
-		//Remove query_vars variable so it's not confused for a WP function
-		$wp->query_vars = array(); //Remove so it doesn't interfer with Static Front Page
+		//Remove certain query_vars variables so it's not confused for a WP function
+		//Must leave pagename
+		unset($wp->query_vars['name']);
+		unset($wp->query_vars['search']);
+		unset($wp->query_vars[$this->WHMCS_PORTAL]);
 
 		//This has something to do with WHMCS so pull the page now for use later in the shortcodes
 		$this->load_whmcs_url(urldecode($this->whmcsportal['page']));
@@ -1310,7 +1315,7 @@ class WHMCS_Wordpress_Integration{
 	}
 
 	function tabs(){
-		screen_icon('options-general');
+		screen_icon('whmcs-integration');
 		?>
 		<h2  id="wcp-top"><?php _e('WHMCS Wordpress Integration ',WHMCS_TEXT_DOMAIN); echo WHMCS_INTEGRATION_VERSION; ?> </h2>
 		<br />
@@ -1328,7 +1333,7 @@ class WHMCS_Wordpress_Integration{
 	*
 	*/
 	function on_admin_menu() {
-		$this->top_menu = add_menu_page(__('WHMCS Integration',WHMCS_TEXT_DOMAIN), __('WHMCS Integration ',WHMCS_TEXT_DOMAIN), 'manage_options', 'wcp-settings', array($this,'admin_pages') );
+		$this->top_menu = add_menu_page(__('WHMCS Integration',WHMCS_TEXT_DOMAIN), __('WHMCS Integration ',WHMCS_TEXT_DOMAIN), 'manage_options', 'wcp-settings', array($this,'admin_pages'), WHMCS_INTEGRATION_URL . 'img/whmcs-16.png' );
 
 		//Register the settings array
 		register_setting( $this->top_menu, WHMCS_SETTINGS_NAME);

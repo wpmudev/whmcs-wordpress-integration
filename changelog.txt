@@ -3,6 +3,10 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.0.7==
+- pagename query_var getting erased.
+- Added Icon
+
 ==1.2.0.6==
 - Fixed problem with Pre- Sales Contact form returning 404
 - Filtered extraneous apostrophe in WHMCS v5.2 /templates/portal/clientareadomains.tpl line 34
