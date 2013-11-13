@@ -7,7 +7,7 @@ Author: Arnold Bailey {Incsub)
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.0.7
+Version: 1.2.0.8
 Network: false
 WDP ID: 263
 */
@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 if(!function_exists('curl_init'))
 exit( __('The WHMCS WordPress Integration plugin requires the PHP Curl extensions.', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.0.7');
+define('WHMCS_INTEGRATION_VERSION','1.2.0.8');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -142,6 +142,8 @@ class WHMCS_Wordpress_Integration{
 		add_action('wp_loaded', array(&$this,'on_wp_loaded'));
 		add_action('admin_menu', array(&$this,'on_admin_menu'));
 		add_action('wp_enqueue_scripts', array(&$this,'on_enqueue_scripts'));
+
+		//add_action('template_redirect', array(&$this,'get_remote_cookies'));
 
 		add_action('admin_enqueue_scripts', array(&$this,'wp_pointer_load'));
 
@@ -354,6 +356,47 @@ class WHMCS_Wordpress_Integration{
 	}
 
 	/**
+	* get_remote_cookies  Reads and return s the cookies being sent to WHMCS
+	*
+	* @return array of WP_Http_Cookie objects
+	*/
+	function get_remote_cookies(){
+
+		$result = array(); //array of cookies
+
+		$cookies = str_getcsv( file_get_contents($this->cache), "\n" ); //Break at lines
+		foreach($cookies as $key => $cookie){
+			if(is_string($cookie) ){
+				if(stripos($cookie, $this->remote_parts['host']) !== false){  //Our domain?
+					$a = str_getcsv($cookie, "\t" );
+					$result[] = new WP_Http_Cookie( array(
+					'name' => urldecode($a[5]),
+					'value' => urldecode($a[6]),
+					'expires' => $a[4],
+					'path' => $a[2],
+					'domain' =>  $this->remote_parts['host'],
+					) );
+				}
+			}
+		}
+		return $result;
+	}
+
+	function clear_whmcs_session(){
+		$cookies = str_getcsv( file_get_contents($this->cache), "\n" ); //Break at lines
+		foreach($cookies as $key => $cookie){
+			if(is_string($cookie) ){
+				if(stripos($cookie, $this->remote_parts['host']) !== false){  //Our domain?
+					if(strpos($cookie, "\t0\tWHMCS") !== false){ //And session cookie?
+						$cookies[$key] = '';
+					}
+				}
+			}
+		}
+		file_put_contents($this->cache, implode("\n", $cookies) );
+	}
+
+	/**
 	* WHMCS cookies are synced by queuing dummy CSS links to the wp-integration.php file on the remote site.
 	*
 	*/
@@ -361,7 +404,7 @@ class WHMCS_Wordpress_Integration{
 		//Encrypt the cookie to sync with WP
 		//				$key= 'password';
 
-		$cookie->httponly = isset($cookie->httponly) ? 1 : 0;
+		$cookie->httponly = 1; //isset($cookie->httponly) ? 1 : 0;
 		$cookie->secure = isset($cookie->secure) ? 1 : 0;
 
 		$key = strtolower($this->remote_parts['host']);
@@ -448,18 +491,6 @@ class WHMCS_Wordpress_Integration{
 		return false;
 	}
 
-	function clear_whmcs_session(){
-		$cookies = str_getcsv( file_get_contents($this->cache), "\n" ); //Break at lines
-		foreach($cookies as $key => $cookie){
-			if(stripos($cookie, $this->remote_parts['host']) !== false){  //Our domain?
-				if(strpos($cookie, "\t0\tWHMCS") !== false){ //And session cookie?
-					$cookies[$key] = '';
-				}
-			}
-		}
-		file_put_contents($this->cache, implode("\n", $cookies) );
-	}
-
 	function cache_cookies($handle){
 		curl_setopt( $handle, CURLOPT_COOKIEJAR, $this->cache );
 		curl_setopt( $handle, CURLOPT_COOKIEFILE, $this->cache );
@@ -479,10 +510,13 @@ class WHMCS_Wordpress_Integration{
 		add_filter('http_curl_headers', array(&$this,'filter_headers'));
 		add_filter('http_api_redirect', array(&$this,'filter_redirect'));
 
-		if(stripos($url, 'dologin.php') !== false){ //If login then clear the session cookie to force cookie sync
-			$this->clear_whmcs_session();
-			$url .= apply_filters('whmcs_get_args', 'systpl=portal');
-		}
+		//		if( is_string($url) && ( stripos($url, 'dologin.php') !== false) ){ //If login then clear the session cookie to force cookie sync
+		//			$remote_cookies = $this->get_remote_cookies();
+		//			if( ! empty($remote_cookies) ) {
+		//				set_transient($this->pending_cookies, $remote_cookies, 120);
+		//			}
+		//			//$url .= apply_filters('whmcs_get_args', 'systpl=portal');
+		//		}
 
 		$this->whmcs_request_url = $url;
 
@@ -575,7 +609,9 @@ class WHMCS_Wordpress_Integration{
 			//Queue the cookies for syncing
 
 			if( !empty($response['cookies']) ){
-				set_transient($this->pending_cookies, $response['cookies'], 120);
+				$cookies = $this->get_remote_cookies();
+				if( is_array($cookies) ) $cookies = array_merge($cookies, $response['cookies']);
+				set_transient($this->pending_cookies, $cookies, 120);
 			}
 
 			if (in_array($response['response']['code'], array(300, 301, 302, 303, 307) ) ){
@@ -593,12 +629,23 @@ class WHMCS_Wordpress_Integration{
 
 				if(in_array($response['response']['code'], array(302, 303 ) ) ) $this->method = 'GET';
 
-				if( stripos($newurl,$this->remote_host) !== false){
+				if( stripos($newurl, $this->remote_host) !== false){
 					$response =  $this->redirect_request( $newurl , $this->post_fields );
 				} else {
 					wp_redirect($newurl);
 					exit;
 				}
+			}
+		}
+
+		//Downloads and Knowledgebase special handling
+		if( is_string($url)
+		&& ( ( stripos($url, '/dl.php') !== false)
+		|| ( stripos($url, '/knowledgebase.php') !== false)
+		)	){
+			if( strpos($response['body'], '<base href=') === false) {
+				wp_redirect($url);
+				exit;
 			}
 		}
 
@@ -995,11 +1042,11 @@ class WHMCS_Wordpress_Integration{
 			//take care of special cases
 			if ( $hr == '#') continue;
 
-			if ($href->ownerElement->tagName == 'link' || stripos($hr, 'dl.php') !== false){
-				//Download direct from the WHMCS page which also takes care of css images
-				$href->parentNode->setAttribute('href', url_to_absolute($this->remote_host, htmlspecialchars_decode($hr)));
-				continue;
-			}
+			//			if ($href->ownerElement->tagName == 'link' || stripos($hr, 'dl.php') !== false){
+			//				//Download direct from the WHMCS page which also takes care of css images
+			//				$href->parentNode->setAttribute('href', url_to_absolute($this->remote_host, htmlspecialchars_decode($hr)));
+			//				continue;
+			//			}
 
 			$href->parentNode->setAttribute('href', $this->redirect_url($hr));
 		}

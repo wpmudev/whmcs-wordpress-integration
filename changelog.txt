@@ -3,6 +3,10 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.0.8==
+- Changes to cookies syncing so the session cookie isn't lost on login.
+- Change to handling of download and knowledgebase links
+
 ==1.2.0.7==
 - pagename query_var getting erased.
 - Added Icon
