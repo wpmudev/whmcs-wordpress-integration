@@ -7,7 +7,7 @@ Author: Arnold Bailey {Incsub)
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.0.8
+Version: 1.2.0.9
 Network: false
 WDP ID: 263
 */
@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 if(!function_exists('curl_init'))
 exit( __('The WHMCS WordPress Integration plugin requires the PHP Curl extensions.', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.0.8');
+define('WHMCS_INTEGRATION_VERSION','1.2.0.9');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -945,6 +945,7 @@ class WHMCS_Wordpress_Integration{
 		//Must leave pagename
 		unset($wp->query_vars['name']);
 		unset($wp->query_vars['search']);
+		unset($wp->query_vars['page']);
 		unset($wp->query_vars[$this->WHMCS_PORTAL]);
 
 		//This has something to do with WHMCS so pull the page now for use later in the shortcodes
@@ -1024,6 +1025,19 @@ class WHMCS_Wordpress_Integration{
 
 		$xpath = new DOMXPath($this->dom);
 
+		//Collect the css
+		$this->css = $xpath->query('//link[@rel="stylesheet"]');
+		foreach($this->css as $css) {
+			$href = url_to_absolute($this->remote_host, $css->getAttribute('href') );
+			if( (stripos( $href, '/jscript/css/') !== false)
+			||  (stripos( $href, '/invoicestyle') !== false)
+			||  (stripos( $href, '/orderforms/') !== false)
+			) {
+				$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.css'), '', $href) );
+				wp_enqueue_style($handle, $href);
+			}
+		}
+
 		//redirect WHMCS images
 		$srcs = $xpath->query('//@src');
 		foreach($srcs as $src){
@@ -1057,20 +1071,6 @@ class WHMCS_Wordpress_Integration{
 			$action->parentNode->setAttribute('action', $this->redirect_url($action->textContent));
 		}
 
-		//Collect the css
-		$this->css = $xpath->query('//link[@rel="stylesheet"]');
-		foreach($this->css as $css) {
-			$href = $css->getAttribute('href');
-			if( (stripos( $href, '/jscript/css/') !== false)
-			||  (stripos( $href, '/invoicestyle') !== false)
-			||  (stripos( $href, '/orderforms/') !== false)
-			) {
-				$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.css'), '', $href) );
-				wp_enqueue_style($handle, $href);
-
-			}
-		}
-
 		/**
 		* Collect and queue the Content
 		*/
@@ -1096,7 +1096,7 @@ class WHMCS_Wordpress_Integration{
 				$root->appendChild($this->content->importNode($script, true));
 			}
 
-			$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.js'), '', $href) );
+			$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.js'), '', $src) );
 			if( (stripos( $src, '/templates/') !== false) )
 			{
 				$script->setAttribute('src', $this->cache_javascript($src));
@@ -1131,6 +1131,10 @@ class WHMCS_Wordpress_Integration{
 		}
 		if($content){
 			$root->appendChild($this->content->importNode($content, true));
+			if( ! $content){
+				$content = $this->dom->getElementById('content_left');
+
+			}
 		} else {
 
 			// Doesn't look like a Portal page return an error in all shortcodes
@@ -1425,6 +1429,12 @@ class WHMCS_Wordpress_Integration{
 			<?php if(ini_get('safe_mode')) _e('<div class="error">PHP safe_mode is on </div>',WHMCS_TEXT_DOMAIN) . ini_get('safe_mode'); ?>
 			<?php if(ini_get('open_basedir')) _e('<div class="error">PHP open_basedir is on </div>',WHMCS_TEXT_DOMAIN) . ini_get('open_basedir'); ?>
 			<?php if( ! $this->http_patch(true)) _e('<div class="error">WHMCS Integration cannot patch file wp-contents/class-http.php. Make sure it is writable</div>',WHMCS_TEXT_DOMAIN) . ini_get('open_basedir'); ?>
+			<?php
+			wp_enqueue_style('magnific-popup', WHMCS_INTEGRATION_URL . "css/magnific-popup.css", array());
+			wp_enqueue_script('jquery.magnific-popup', WHMCS_INTEGRATION_URL . "js/jquery.magnific-popup.min.js", array('jquery' ) );
+			?>
+
+			<script>jQuery(document).ready(function($) { $('.image-link').magnificPopup({type:'image'}); });</script>
 
 			<?php $this->tabs(); ?>
 			<div id="poststuff" class="metabox-holder">
@@ -1444,7 +1454,10 @@ class WHMCS_Wordpress_Integration{
 										<td>
 											<input type="text" name="wcp_settings[remote_host]" size="40" value="<?php echo esc_attr($this->settings['remote_host']); ?>" />
 											<?php echo 'IP: ' . gethostbyname(parse_url($this->settings['remote_host'], PHP_URL_HOST)); ?>
-											<br /><span class="description"><?php _e('The URL you set in THE WHMCS System URL. If you use https: you must use the same mode in both the plugin and WHMCS.<br />Whether you use http: or https: leave the SSL System URL blank in WHMCS.', WHMCS_TEXT_DOMAIN); ?>  </span>
+											<br /><span class="description"><?php _e('This is the URL you set in THE WHMCS System URL. If you use https: you must use the same mode in both the plugin and WHMCS. Whether you use http: or https: leave the SSL System URL blank in WHMCS.', WHMCS_TEXT_DOMAIN); ?>  </span>
+											<a class="image-link" href="<?php echo WHMCS_INTEGRATION_URL . 'img/whmcs-url.png';?>" alt="System URL"
+												title="<?php _e('The plugin Remote Host must match exactly the setting in your WHMCS System URL and the WHMCS SSL System URL must be blank. You can use either http: or https: but they must match. If you are using a www. subdomain and are redirecting to enforce the www, then the final destination url must be here.', WHMCS_TEXT_DOMAIN); ?>" />
+											<br/>Read more &raquo;</a>
 										</td>
 									</tr>
 									<tr>
@@ -1480,7 +1493,7 @@ class WHMCS_Wordpress_Integration{
 											<input type="submit" class="button-primary" name="submit" value="<?php _e(esc_attr('Save Settings'),WHMCS_TEXT_DOMAIN); ?>" />
 										</th>
 										<td>
-
+											<a href="http://premium.wpmudev.org/project/whmcs-wordpress-integration/#usage" target="whmcs"><?php esc_html_e('See online Usage instructions', WHMCS_TEXT_DOMAIN); ?></a>
 										</td>
 									</tr>
 								</tbody>

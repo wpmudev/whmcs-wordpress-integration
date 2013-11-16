@@ -3,6 +3,14 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.0.9==
+- Remote css cache was sometimes not loading particularly on the modern orderform.
+- Removed page query_var which was blocking paging in email.
+- Image instructions for setting the Remote Host URL
+- Link to Usage page.
+- Checked against Wordpress 3.8beta
+- Fixed stripos glitch with arrays.
+
 ==1.2.0.8==
 - Changes to cookies syncing so the session cookie isn't lost on login.
 - Change to handling of download and knowledgebase links
