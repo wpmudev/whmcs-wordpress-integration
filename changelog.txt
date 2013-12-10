@@ -3,6 +3,11 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.1==
+- fix to themes that don't add trailing slash to paths.
+- New WPMU desktop code
+- Made SSL/TLS and certificate settings automatic. WP 3.7 supports certificates.
+
 ==1.2.0.9==
 - Remote css cache was sometimes not loading particularly on the modern orderform.
 - Removed page query_var which was blocking paging in email.

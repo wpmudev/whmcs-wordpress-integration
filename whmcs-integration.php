@@ -7,7 +7,7 @@ Author: Arnold Bailey {Incsub)
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.0.9
+Version: 1.2.1
 Network: false
 WDP ID: 263
 */
@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 if(!function_exists('curl_init'))
 exit( __('The WHMCS WordPress Integration plugin requires the PHP Curl extensions.', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.0.9');
+define('WHMCS_INTEGRATION_VERSION','1.2.1');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -39,8 +39,21 @@ define('WHMCS_INTEGRATION_DIR', plugin_dir_path(__FILE__) );
 define('WHMCS_INTEGRATION_CACHE_URL', plugin_dir_url(__FILE__) . 'cache/');
 define('WHMCS_INTEGRATION_CACHE_DIR', plugin_dir_path(__FILE__) . 'cache/');
 
+if(!defined('CURL_SSLVERSION_DEFAULT') ) define('CURL_SSLVERSION_DEFAULT', 0);
+if(!defined('CURL_SSLVERSION_TLSv1') ) define('CURL_SSLVERSION_TLSv1', 1);
+if(!defined('CURL_SSLVERSION_SSLv2') ) define('CURL_SSLVERSION_SSLv2', 2);
+if(!defined('CURL_SSLVERSION_SSLv3') ) define('CURL_SSLVERSION_SSLv3', 3);
+
 require(plugin_dir_path(__FILE__) .'lib/url_to_absolute.php');
+
 /* -------------------- WPMU DEV Dashboard Notice -------------------- */
+global $wpmudev_notices;
+$wpmudev_notices[] = array( 'id'=> 263,
+'name'=> 'WHMCS WordPress Integration',
+'screens' => array(
+'toplevel_page_wcp-settings',
+) );
+
 include_once(plugin_dir_path(__FILE__) .'lib/wpmudev-dash-notification.php');
 
 add_filter('widget_text', 'do_shortcode'); // Allows use of shortcodes in widgets
@@ -155,8 +168,6 @@ class WHMCS_Wordpress_Integration{
 
 		add_filter('request', array(&$this,'on_request'));
 		add_filter('http_request_timeout', array(&$this,'on_timeout'));
-		add_filter('https_ssl_verify', array(&$this,'ssl_verify'));
-		add_filter('https_local_ssl_verify', array(&$this,'ssl_verify'));
 
 		add_filter('whitelist_options', array(&$this,'on_whitelist_options'));
 
@@ -179,6 +190,10 @@ class WHMCS_Wordpress_Integration{
 		add_action('wp_ajax_twitterfeed',array(&$this,'whmcs_ajax'));
 		add_action('wp_ajax_nopriv_twitterfeed',array(&$this,'whmcs_ajax'));
 
+		if(version_compare(get_bloginfo( 'version' ), '3.7', '>=' ) ) {
+			add_filter('https_ssl_verify', '__return_false');
+			add_filter('https_local_ssl_verify', '__return_false');
+		}
 	}
 
 	function init_properties(){
@@ -260,10 +275,6 @@ class WHMCS_Wordpress_Integration{
 		);
 
 		new WP_Help_Pointer($pointers);
-	}
-
-	function ssl_verify($sslverify){
-		return false;
 	}
 
 	function on_timeout($timeout){
@@ -495,7 +506,7 @@ class WHMCS_Wordpress_Integration{
 		curl_setopt( $handle, CURLOPT_COOKIEJAR, $this->cache );
 		curl_setopt( $handle, CURLOPT_COOKIEFILE, $this->cache );
 		curl_setopt( $handle, CURLOPT_FOLLOWLOCATION, false ); // Need to follow redirects explicitly
-		curl_setopt( $handle, CURLOPT_SSLVERSION, 3 ); //
+		curl_setopt( $handle, CURLOPT_SSLVERSION, CURL_SSLVERSION_DEFAULT );
 
 		//If this is a multipart post this is our chance to fixup curl
 		if ( count($_FILES) >  0 || $this->multipart ){
@@ -509,14 +520,6 @@ class WHMCS_Wordpress_Integration{
 		add_action('http_api_curl',array(&$this,'cache_cookies'));
 		add_filter('http_curl_headers', array(&$this,'filter_headers'));
 		add_filter('http_api_redirect', array(&$this,'filter_redirect'));
-
-		//		if( is_string($url) && ( stripos($url, 'dologin.php') !== false) ){ //If login then clear the session cookie to force cookie sync
-		//			$remote_cookies = $this->get_remote_cookies();
-		//			if( ! empty($remote_cookies) ) {
-		//				set_transient($this->pending_cookies, $remote_cookies, 120);
-		//			}
-		//			//$url .= apply_filters('whmcs_get_args', 'systpl=portal');
-		//		}
 
 		$this->whmcs_request_url = $url;
 
@@ -974,7 +977,6 @@ class WHMCS_Wordpress_Integration{
 	function redirect_url($url){
 
 		$s = str_ireplace($this->remote_host, '', $url ); //Make relative if from WHMCS
-		//$s = str_ireplace($this->https_remote, '', $s ); //Make relative if from WHMCS
 
 		$relative = stripos( trim($s), 'http') === false;
 
@@ -989,9 +991,10 @@ class WHMCS_Wordpress_Integration{
 		//Remove the matching  part of the remote and local path
 		@$whmcs_parts['path'] = '/' . implode('', explode($this->remote_parts['path'], $whmcs_parts['path'], 2));
 
-		if($this->content_page_id == 0) $parts = split_url($_SERVER['REQUEST_URI']);
-		else $parts = split_url(get_permalink($this->content_page_id));
+		if($this->content_page_id == 0) $parts = split_url( $_SERVER['REQUEST_URI']);
+		else $parts = split_url( get_permalink($this->content_page_id) );
 
+		$parts['path'] = trailingslashit($parts['path'] );
 		$parts['path'] .= $this->WHMCS_PORTAL . trailingslashit( $whmcs_parts['path']);
 
 		$parts['query'] = isset($whmcs_parts['query']) ? $whmcs_parts['query'] : '';
@@ -1413,9 +1416,10 @@ class WHMCS_Wordpress_Integration{
 
 	function on_whitelist_options( $whitelist_options){
 
-		if(isset( $_POST[WHMCS_SETTINGS_NAME] ) )
-		$_POST[WHMCS_SETTINGS_NAME] = array_replace( $this->settings, $_POST[WHMCS_SETTINGS_NAME]);
-
+		if(isset( $_POST[WHMCS_SETTINGS_NAME] ) ){
+			$_POST[WHMCS_SETTINGS_NAME] = array_map('sanitize_text_field', stripslashes_deep($_POST[WHMCS_SETTINGS_NAME]));
+			$_POST[WHMCS_SETTINGS_NAME] = array_replace( $this->settings, $_POST[WHMCS_SETTINGS_NAME]);
+		}
 		return $whitelist_options;
 	}
 
@@ -1428,10 +1432,11 @@ class WHMCS_Wordpress_Integration{
 		<div class="wrap">
 			<?php if(ini_get('safe_mode')) _e('<div class="error">PHP safe_mode is on </div>',WHMCS_TEXT_DOMAIN) . ini_get('safe_mode'); ?>
 			<?php if(ini_get('open_basedir')) _e('<div class="error">PHP open_basedir is on </div>',WHMCS_TEXT_DOMAIN) . ini_get('open_basedir'); ?>
-			<?php if( ! $this->http_patch(true)) _e('<div class="error">WHMCS Integration cannot patch file wp-contents/class-http.php. Make sure it is writable</div>',WHMCS_TEXT_DOMAIN) . ini_get('open_basedir'); ?>
+			<?php if( ! $this->http_patch(true)) _e('<div class="error">WHMCS Integration cannot patch file wp-includes/class-http.php. Make sure it is writable</div>',WHMCS_TEXT_DOMAIN) . ini_get('open_basedir'); ?>
 			<?php
 			wp_enqueue_style('magnific-popup', WHMCS_INTEGRATION_URL . "css/magnific-popup.css", array());
 			wp_enqueue_script('jquery.magnific-popup', WHMCS_INTEGRATION_URL . "js/jquery.magnific-popup.min.js", array('jquery' ) );
+
 			?>
 
 			<script>jQuery(document).ready(function($) { $('.image-link').magnificPopup({type:'image'}); });</script>
@@ -1454,9 +1459,9 @@ class WHMCS_Wordpress_Integration{
 										<td>
 											<input type="text" name="wcp_settings[remote_host]" size="40" value="<?php echo esc_attr($this->settings['remote_host']); ?>" />
 											<?php echo 'IP: ' . gethostbyname(parse_url($this->settings['remote_host'], PHP_URL_HOST)); ?>
-											<br /><span class="description"><?php _e('This is the URL you set in THE WHMCS System URL. If you use https: you must use the same mode in both the plugin and WHMCS. Whether you use http: or https: leave the SSL System URL blank in WHMCS.', WHMCS_TEXT_DOMAIN); ?>  </span>
+											<br /><span class="description"><?php esc_attr_e('The URL entered in the "Remote Host" setting must be an exact copy of the URL in the "WHMCS System URL" field.', WHMCS_TEXT_DOMAIN); ?>  </span>
 											<a class="image-link" href="<?php echo WHMCS_INTEGRATION_URL . 'img/whmcs-url.png';?>" alt="System URL"
-												title="<?php _e('The plugin Remote Host must match exactly the setting in your WHMCS System URL and the WHMCS SSL System URL must be blank. You can use either http: or https: but they must match. If you are using a www. subdomain and are redirecting to enforce the www, then the final destination url must be here.', WHMCS_TEXT_DOMAIN); ?>" />
+												title="<?php esc_attr_e('The URL entered in the "Remote Host" setting must be an exact copy of the URL in the "WHMCS System URL" field. You can use either http: or https: here, but the URL must be identical in both fields. If you are using a www. subdomain and are redirecting to enforce the www. then that must also be included in the URL entered in both fields. Important: even if you are using https:, the "WHMCS SSL System URL" must be blank.', WHMCS_TEXT_DOMAIN); ?>" />
 											<br/>Read more &raquo;</a>
 										</td>
 									</tr>
