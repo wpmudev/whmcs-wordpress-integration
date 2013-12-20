@@ -7,7 +7,7 @@ Author: Arnold Bailey {Incsub)
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.1
+Version: 1.2.1.1
 Network: false
 WDP ID: 263
 */
@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 if(!function_exists('curl_init'))
 exit( __('The WHMCS WordPress Integration plugin requires the PHP Curl extensions.', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.1');
+define('WHMCS_INTEGRATION_VERSION','1.2.1.1');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -115,6 +115,9 @@ class WHMCS_Wordpress_Integration{
 
 	//WHMCS last requested url after redirects
 	public $whmcs_request_url = '';
+
+	//WHMCS session id
+	public $sid = null;
 
 	//Redirect_request post_fields
 	public $post_fields = array();
@@ -325,21 +328,22 @@ class WHMCS_Wordpress_Integration{
 		);
 
 		//setup cache files for current session
-		if(! session_id()) session_start();
-		$sid = session_id();
-		$this->pending_cookies = 'whmcs_cookie_' . $sid;
+		if( !session_id() ) session_start();
+		$this->sid = session_id();
+
+		$this->pending_cookies = 'whmcs_cookie_' . $this->sid;
 
 		//Setup session specific cookies for WHMCS
 		if(! is_dir(WHMCS_INTEGRATION_CACHE_DIR)) mkdir(WHMCS_INTEGRATION_CACHE_DIR, 0755);
 		if(! is_writable(WHMCS_INTEGRATION_CACHE_DIR) ) chmod(WHMCS_INTEGRATION_CACHE_DIR, 0755);
 		//if(! is_writable(WHMCS_INTEGRATION_CACHE_DIR) ) chmod(WHMCS_INTEGRATION_CACHE_DIR, 0777);
-		$this->cache = WHMCS_INTEGRATION_CACHE_DIR . "$sid.txt";
+		$this->cache = WHMCS_INTEGRATION_CACHE_DIR . "{$this->sid}.txt";
 
 		//Clean out old cache files
 		foreach(glob(WHMCS_INTEGRATION_CACHE_DIR . '*.*') as $fname){
 			$age = time() - filemtime($fname);
-			if(($age > 24 * 60 * 60 * 7) &&  (basename($fname) != 'index.php')) { //Don't erase our blocking index.php file
-				unlink($fname); // more than a week old;
+			if(($age > (12 * 60 * 60) ) &&  (basename($fname) != 'index.php')) { //Don't erase our blocking index.php file
+				unlink($fname); // more than 12 hours old;
 			}
 		}
 
@@ -865,7 +869,6 @@ class WHMCS_Wordpress_Integration{
 	function whmcs_ajax(){
 		check_ajax_referer('whmcs_nonce');
 
-		//print_r($_REQUEST); exit;
 		$this->whmcsportal = $_REQUEST['whmcsportal'];
 
 		$this->whmcsportal['page'] = str_replace('whmcs://', 'http://', $this->whmcsportal['page']);
@@ -1005,7 +1008,7 @@ class WHMCS_Wordpress_Integration{
 
 	function cache_javascript($url){
 
-		$cache_name = md5($url) . '.js';
+		$cache_name = md5($url . $this->sid) . '.js';
 		$cache_file = WHMCS_INTEGRATION_CACHE_DIR . $cache_name;
 		$cache_url = WHMCS_INTEGRATION_URL . 'cache/' . $cache_name . '?ver=' .rand();
 

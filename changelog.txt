@@ -3,6 +3,9 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.1.1==
+- Regen cached js files more often to prevent nonce expirations.
+
 ==1.2.1==
 - fix to themes that don't add trailing slash to paths.
 - New WPMU desktop code
