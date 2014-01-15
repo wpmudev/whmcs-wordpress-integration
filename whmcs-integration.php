@@ -7,7 +7,7 @@ Author: Arnold Bailey {Incsub)
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.1.1
+Version: 1.2.1.2
 Network: false
 WDP ID: 263
 */
@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 if(!function_exists('curl_init'))
 exit( __('The WHMCS WordPress Integration plugin requires the PHP Curl extensions.', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.1.1');
+define('WHMCS_INTEGRATION_VERSION','1.2.1.2');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -141,6 +141,8 @@ class WHMCS_Wordpress_Integration{
 	public $pending_cookies = '';
 
 	public $WHMCS_PORTAL = 'whmcsportal';
+
+	public $doing_ajax = false;
 
 	/**
 	* Constructor
@@ -382,7 +384,7 @@ class WHMCS_Wordpress_Integration{
 		$cookies = str_getcsv( file_get_contents($this->cache), "\n" ); //Break at lines
 		foreach($cookies as $key => $cookie){
 			if(is_string($cookie) ){
-				if(stripos($cookie, $this->remote_parts['host']) !== false){  //Our domain?
+				if( strpos( strtolower($cookie), strtolower($this->remote_parts['host']) ) !== false){  //Our domain?
 					$a = str_getcsv($cookie, "\t" );
 					$result[] = new WP_Http_Cookie( array(
 					'name' => urldecode($a[5]),
@@ -401,7 +403,7 @@ class WHMCS_Wordpress_Integration{
 		$cookies = str_getcsv( file_get_contents($this->cache), "\n" ); //Break at lines
 		foreach($cookies as $key => $cookie){
 			if(is_string($cookie) ){
-				if(stripos($cookie, $this->remote_parts['host']) !== false){  //Our domain?
+				if( strpos( strtolower($cookie), strtolower($this->remote_parts['host']) ) !== false){  //Our domain?
 					if(strpos($cookie, "\t0\tWHMCS") !== false){ //And session cookie?
 						$cookies[$key] = '';
 					}
@@ -636,7 +638,7 @@ class WHMCS_Wordpress_Integration{
 
 				if(in_array($response['response']['code'], array(302, 303 ) ) ) $this->method = 'GET';
 
-				if( stripos($newurl, $this->remote_host) !== false){
+				if( strpos( strtolower($newurl), strtolower($this->remote_host) ) !== false){
 					$response =  $this->redirect_request( $newurl , $this->post_fields );
 				} else {
 					wp_redirect($newurl);
@@ -647,8 +649,8 @@ class WHMCS_Wordpress_Integration{
 
 		//Downloads and Knowledgebase special handling
 		if( is_string($url)
-		&& ( ( stripos($url, '/dl.php') !== false)
-		|| ( stripos($url, '/knowledgebase.php') !== false)
+		&& ( ( strpos( strtolower($url), '/dl.php') !== false)
+		|| ( strpos( strtolower($url), '/knowledgebase.php') !== false)
 		)	){
 			if( strpos($response['body'], '<base href=') === false) {
 				wp_redirect($url);
@@ -838,6 +840,10 @@ class WHMCS_Wordpress_Integration{
 		//for single quotes
 		$text = preg_replace_callback("`(jQuery.post\(')([\w\d-_]+.php)`u", array($this, 'ajax_loop') , $text);
 
+		//For ajaxcart jqueryfloat.js
+		$text = str_replace("this.currentX = offset.left;", "this.currentX = this.jqObj.position().left;", $text );
+		$text = str_replace("this.currentY = offset.top;", "this.currentY = this.jqObj.position().top;", $text );
+
 		return $text;
 	}
 
@@ -869,6 +875,8 @@ class WHMCS_Wordpress_Integration{
 	function whmcs_ajax(){
 		check_ajax_referer('whmcs_nonce');
 
+		$this->doing_ajax = true;
+
 		$this->whmcsportal = $_REQUEST['whmcsportal'];
 
 		$this->whmcsportal['page'] = str_replace('whmcs://', 'http://', $this->whmcsportal['page']);
@@ -895,8 +903,8 @@ class WHMCS_Wordpress_Integration{
 	function on_query_vars($vars){
 
 		//Setup Query filters
-		if ( stripos($_SERVER['QUERY_STRING'], 'contact.php') !== false) $this->query_filter[] = 'name';
-		if ( stripos($_SERVER['QUERY_STRING'], 'submitticket.php') !== false) $this->query_filter[] = 'name';
+		if ( strpos( strtolower($_SERVER['QUERY_STRING']), 'contact.php') !== false) $this->query_filter[] = 'name';
+		if ( strpos( strtolower($_SERVER['QUERY_STRING']), 'submitticket.php') !== false) $this->query_filter[] = 'name';
 
 
 		//Add any vars your going to be receiving from WHMCS
@@ -981,7 +989,7 @@ class WHMCS_Wordpress_Integration{
 
 		$s = str_ireplace($this->remote_host, '', $url ); //Make relative if from WHMCS
 
-		$relative = stripos( trim($s), 'http') === false;
+		$relative = strpos( strtolower(trim($s) ), 'http') === false;
 
 		$path = url_to_absolute($this->whmcs_base, $s); //whmcs path for this link may be offsite
 
@@ -1035,9 +1043,9 @@ class WHMCS_Wordpress_Integration{
 		$this->css = $xpath->query('//link[@rel="stylesheet"]');
 		foreach($this->css as $css) {
 			$href = url_to_absolute($this->remote_host, $css->getAttribute('href') );
-			if( (stripos( $href, '/jscript/css/') !== false)
-			||  (stripos( $href, '/invoicestyle') !== false)
-			||  (stripos( $href, '/orderforms/') !== false)
+			if( (strpos( strtolower($href), '/jscript/css/') !== false)
+			||  (strpos( strtolower($href), '/invoicestyle') !== false)
+			||  (strpos( strtolower($href), '/orderforms/') !== false)
 			) {
 				$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.css'), '', $href) );
 				wp_enqueue_style($handle, $href);
@@ -1048,7 +1056,7 @@ class WHMCS_Wordpress_Integration{
 		$srcs = $xpath->query('//@src');
 		foreach($srcs as $src){
 			$url = url_to_absolute($this->remote_host, $src->textContent);
-			if(stripos($url, 'verifyimage.php') !== false) {
+			if(strpos( strtolower($url), 'verifyimage.php') !== false) {
 				$url = $this->get_captcha_url();
 			}
 			$src->parentNode->setAttribute('src', $url) ;
@@ -1061,12 +1069,6 @@ class WHMCS_Wordpress_Integration{
 
 			//take care of special cases
 			if ( $hr == '#') continue;
-
-			//			if ($href->ownerElement->tagName == 'link' || stripos($hr, 'dl.php') !== false){
-			//				//Download direct from the WHMCS page which also takes care of css images
-			//				$href->parentNode->setAttribute('href', url_to_absolute($this->remote_host, htmlspecialchars_decode($hr)));
-			//				continue;
-			//			}
 
 			$href->parentNode->setAttribute('href', $this->redirect_url($hr));
 		}
@@ -1103,13 +1105,13 @@ class WHMCS_Wordpress_Integration{
 			}
 
 			$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.js'), '', $src) );
-			if( (stripos( $src, '/templates/') !== false) )
+			if( (strpos( strtolower($src), '/templates/') !== false) )
 			{
 				$script->setAttribute('src', $this->cache_javascript($src));
 				wp_enqueue_script($handle, $src);
 			}
 
-			if(stripos( $url, '/jscript/') !== false) {
+			if(strpos( strtolower($url), '/jscript/') !== false) {
 				wp_enqueue_script($handle, $src);
 			}
 		}
@@ -1117,7 +1119,7 @@ class WHMCS_Wordpress_Integration{
 		$this->scripts = $xpath->query('//body//script');
 		foreach($this->scripts as $script) {
 			$src = $script->getAttribute('src');
-			if(stripos( $src, '/templates/') !== false )
+			if(strpos( strtolower($src), '/templates/') !== false )
 			{
 				$script->setAttribute('src', $this->cache_javascript($src));
 			}
@@ -1126,10 +1128,10 @@ class WHMCS_Wordpress_Integration{
 		$nodes = $this->dom->getElementsByTagName('body');
 
 		//Un parsed pages
-		if(stripos($this->whmcs_request_url, 'viewinvoice.php') !== false
-		|| stripos($this->whmcs_request_url, 'viewemail.php') !== false
-		|| stripos($this->whmcs_request_url, 'viewquote.php') !== false
-		|| stripos($this->whmcs_request_url, 'whois.php') !== false
+		if(strpos( strtolower($this->whmcs_request_url), 'viewinvoice.php') !== false
+		|| strpos( strtolower($this->whmcs_request_url), 'viewemail.php') !== false
+		|| strpos( strtolower($this->whmcs_request_url), 'viewquote.php') !== false
+		|| strpos( strtolower($this->whmcs_request_url), 'whois.php') !== false
 		){
 			$content = $nodes->item(0);
 		} else {
@@ -1143,24 +1145,33 @@ class WHMCS_Wordpress_Integration{
 			}
 		} else {
 
-			// Doesn't look like a Portal page return an error in all shortcodes
-			$error = $this->content->createElement('div');
-			$error->setAttribute('class', 'whmcs_error');
+			//Has it already tried to force the portal template
 
-			$error_text = new DOMText( sprintf( __('Sorry this doesn\'t look like a WHMCS site at [%1$s]',WHMCS_TEXT_DOMAIN), $this->remote_host)
-			. __('  Make sure your WHMCS Integration settings are pointing to the correct URL and that the WHMCS site is set for the Portal template in Setup | General.',WHMCS_TEXT_DOMAIN));
+			if( (strpos( strtolower($this->whmcs_request_url), 'systpl') === false) && !$this->doing_ajax ) {
+				//Try to force the portal template
+				$url = add_query_arg(array('systpl' => 'portal'), $this->whmcs_request_url);
+				wp_redirect( $this->redirect_url( $url ) );
+				exit;
+			} elseif( !defined(DOING_AJAX) ){
+				// Doesn't look like a Portal page return an error in all shortcodes
+				$error = $this->content->createElement('div');
+				$error->setAttribute('class', 'whmcs_error');
 
-			$error->appendChild($error_text);
+				$error_text = new DOMText( sprintf( __('Sorry this doesn\'t look like a WHMCS site at [%1$s]',WHMCS_TEXT_DOMAIN), $this->remote_host)
+				. __('  Make sure your WHMCS Integration settings are pointing to the correct URL and that the WHMCS site is set for the Portal template in Setup | General.',WHMCS_TEXT_DOMAIN));
 
-			$this->content->appendChild($error);
+				$error->appendChild($error_text);
 
-			$this->welcome = $this->content;
-			$this->menu = $this->content;
-			$this->account = $this->content;
-			$this->statistics = $this->content;
-			$this->quick_nav = $this->content;
+				$this->content->appendChild($error);
 
-			return;
+				$this->welcome = $this->content;
+				$this->menu = $this->content;
+				$this->account = $this->content;
+				$this->statistics = $this->content;
+				$this->quick_nav = $this->content;
+
+				return;
+			}
 		}
 
 		$comment = $this->content->createComment('End WHMCS Integration');

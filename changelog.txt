@@ -3,6 +3,9 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.1.2==
+- Added retry if the wrong template is set. Tries to force the portal template.
+
 ==1.2.1.1==
 - Regen cached js files more often to prevent nonce expirations.
 
