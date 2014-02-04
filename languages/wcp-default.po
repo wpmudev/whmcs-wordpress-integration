@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: WHMCS Wordpress Integration\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-10 07:41-0500\n"
-"PO-Revision-Date: 2013-12-10 07:41-0500\n"
+"POT-Creation-Date: 2014-02-04 10:36-0500\n"
+"PO-Revision-Date: 2014-02-04 10:36-0500\n"
 "Last-Translator: Arnold Bailey <arnold@incsub.com>\n"
 "Language-Team: Arnold Bailey <arnold@incsub.com>\n"
 "Language: en\n"
@@ -14,15 +14,22 @@ msgstr ""
 "esc_html__;esc_html_e;esc_html_x\n"
 "X-Poedit-Basepath: .\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-"X-Generator: Poedit 1.6.2\n"
+"X-Generator: Poedit 1.6.3\n"
 "X-Poedit-SearchPath-0: ..\n"
 
-#: ../whmcs-integration.php:32
+#: ../whmcs-integration.php:34
 msgid ""
-"The WHMCS WordPress Integration plugin requires the PHP Curl extensions."
+"<h3 style=\"color: #c00;\">The WHMCS WordPress Integration plugin requires "
+"the PHP Curl extensions.</h3>"
 msgstr ""
 
-#: ../whmcs-integration.php:233
+#: ../whmcs-integration.php:37
+msgid ""
+"<h3 style=\"color: #c00;\">The WHMCS WordPress Integration plugin requires "
+"the PHP mbstring extensions.</h3>"
+msgstr ""
+
+#: ../whmcs-integration.php:248
 msgid ""
 "<p>WHMCS WordPress Integration can now sync certain cookies between WHMCS "
 "and Wordpress so that downloads of protected files from WHMCS can work "
@@ -30,11 +37,11 @@ msgid ""
 "\" file in this plugin to the root of the WHMCS System installation.</p>"
 msgstr ""
 
-#: ../whmcs-integration.php:242
+#: ../whmcs-integration.php:257
 msgid "NEW - Permalinks Endpoint Slug"
 msgstr ""
 
-#: ../whmcs-integration.php:243
+#: ../whmcs-integration.php:258
 msgid ""
 "<p>This is the slug that signals that the following page is to be pulled "
 "from the WHMCS site.</p> <p>You can change it to whatever you like to avoid "
@@ -42,70 +49,70 @@ msgid ""
 "lowercase alphanumerics and the hyphen.</p>"
 msgstr ""
 
-#: ../whmcs-integration.php:254 ../whmcs-integration.php:266
+#: ../whmcs-integration.php:269 ../whmcs-integration.php:281
 msgid "NEW - WHMCS WordPress Integration Cookie syncing"
 msgstr ""
 
-#: ../whmcs-integration.php:1147
+#: ../whmcs-integration.php:1173
 #, php-format
 msgid "Sorry this doesn't look like a WHMCS site at [%1$s]"
 msgstr ""
 
-#: ../whmcs-integration.php:1148
+#: ../whmcs-integration.php:1174
 msgid ""
 "  Make sure your WHMCS Integration settings are pointing to the correct URL "
 "and that the WHMCS site is set for the Portal template in Setup | General."
 msgstr ""
 
-#: ../whmcs-integration.php:1374
+#: ../whmcs-integration.php:1401
 msgid "WHMCS Wordpress Integration "
 msgstr ""
 
-#: ../whmcs-integration.php:1378
+#: ../whmcs-integration.php:1405
 msgid "Settings"
 msgstr ""
 
-#: ../whmcs-integration.php:1379
+#: ../whmcs-integration.php:1406
 msgid "Single Sign On"
 msgstr ""
 
-#: ../whmcs-integration.php:1390
+#: ../whmcs-integration.php:1417
 msgid "WHMCS Integration"
 msgstr ""
 
-#: ../whmcs-integration.php:1390
+#: ../whmcs-integration.php:1417
 msgid "WHMCS Integration "
 msgstr ""
 
-#: ../whmcs-integration.php:1433
+#: ../whmcs-integration.php:1460
 msgid "<div class=\"error\">PHP safe_mode is on </div>"
 msgstr ""
 
-#: ../whmcs-integration.php:1434
+#: ../whmcs-integration.php:1461
 msgid "<div class=\"error\">PHP open_basedir is on </div>"
 msgstr ""
 
-#: ../whmcs-integration.php:1435
+#: ../whmcs-integration.php:1462
 msgid ""
 "<div class=\"error\">WHMCS Integration cannot patch file wp-includes/class-"
 "http.php. Make sure it is writable</div>"
 msgstr ""
 
-#: ../whmcs-integration.php:1448
+#: ../whmcs-integration.php:1475
 msgid "WHMCS Wordpress Integration"
 msgstr ""
 
-#: ../whmcs-integration.php:1457
+#: ../whmcs-integration.php:1484
 msgid "Remote WHMCS Host:"
 msgstr ""
 
-#: ../whmcs-integration.php:1462
+#: ../whmcs-integration.php:1489
 msgid ""
 "The URL entered in the \"Remote Host\" setting must be an exact copy of the "
 "URL in the \"WHMCS System URL\" field."
 msgstr ""
 
-#: ../whmcs-integration.php:1464
+#: ../whmcs-integration.php:1491
 msgid ""
 "The URL entered in the \"Remote Host\" setting must be an exact copy of the "
 "URL in the \"WHMCS System URL\" field. You can use either http: or https: "
@@ -115,139 +122,139 @@ msgid ""
 "https:, the \"WHMCS SSL System URL\" must be blank."
 msgstr ""
 
-#: ../whmcs-integration.php:1470
+#: ../whmcs-integration.php:1497
 msgid "Default Content Page:"
 msgstr ""
 
-#: ../whmcs-integration.php:1476
+#: ../whmcs-integration.php:1503
 msgid "--Select the default content display page--"
 msgstr ""
 
-#: ../whmcs-integration.php:1483
+#: ../whmcs-integration.php:1510
 msgid ""
 "This is your default content page which contains the [wcp_content] shortcode."
 msgstr ""
 
-#: ../whmcs-integration.php:1488
+#: ../whmcs-integration.php:1515
 msgid "Endpoint Slug:"
 msgstr ""
 
-#: ../whmcs-integration.php:1492
+#: ../whmcs-integration.php:1519
 msgid "The endpoint slug to use to signal reference to a WHMCS page"
 msgstr ""
 
-#: ../whmcs-integration.php:1493
+#: ../whmcs-integration.php:1520
 msgid ""
 "Permalinks will be of the form <br />http://YOUR.DOMAIN/DEFAULT_PAGE/"
 "ENDPOINT/clientarea.php"
 msgstr ""
 
-#: ../whmcs-integration.php:1501
+#: ../whmcs-integration.php:1528
 msgid "See online Usage instructions"
 msgstr ""
 
-#: ../whmcs-integration.php:1509
+#: ../whmcs-integration.php:1536
 msgid "WHMCS URL Encoder Tool"
 msgstr ""
 
-#: ../whmcs-integration.php:1517
+#: ../whmcs-integration.php:1544
 msgid "URL at WHMCS to encode:"
 msgstr ""
 
-#: ../whmcs-integration.php:1521
+#: ../whmcs-integration.php:1548
 msgid ""
 "All base urls at WHMCS must use the Remote WHMCS base url defined above.<br /"
 ">Do not mix www.example.com and example.com urls."
 msgstr ""
 
-#: ../whmcs-integration.php:1526
+#: ../whmcs-integration.php:1553
 msgid "WordPress Encoded URL:"
 msgstr ""
 
-#: ../whmcs-integration.php:1543
+#: ../whmcs-integration.php:1570
 msgid "WHMCS Integration Shortcodes"
 msgstr ""
 
-#: ../whmcs-integration.php:1550
+#: ../whmcs-integration.php:1577
 msgid "WHMCS Main Content:"
 msgstr ""
 
-#: ../whmcs-integration.php:1555 ../whmcs-integration.php:1694
+#: ../whmcs-integration.php:1582 ../whmcs-integration.php:1721
 msgid "Displays the primary content of a WHMCS page."
 msgstr ""
 
-#: ../whmcs-integration.php:1559
+#: ../whmcs-integration.php:1586
 msgid "WHMCS Welcome Box:"
 msgstr ""
 
-#: ../whmcs-integration.php:1564 ../whmcs-integration.php:1747
+#: ../whmcs-integration.php:1591 ../whmcs-integration.php:1774
 msgid ""
 "Displays the current WHMCS user, my details and WHMCS logout link, If not "
 "logged in prompts for the user to login."
 msgstr ""
 
-#: ../whmcs-integration.php:1568
+#: ../whmcs-integration.php:1595
 msgid "WHMCS Top Menu:"
 msgstr ""
 
-#: ../whmcs-integration.php:1573 ../whmcs-integration.php:1799
+#: ../whmcs-integration.php:1600 ../whmcs-integration.php:1826
 msgid ""
 "Displays the top menu from WHMCS. Note that you can style it with css as "
 "either a vertical or horizontal menu. In a sidebar it would default to "
 "vertical."
 msgstr ""
 
-#: ../whmcs-integration.php:1577
+#: ../whmcs-integration.php:1604
 msgid "WHMCS Quick Navigation:"
 msgstr ""
 
-#: ../whmcs-integration.php:1582 ../whmcs-integration.php:1954
+#: ../whmcs-integration.php:1609 ../whmcs-integration.php:1981
 msgid ""
 "Displays the Quick Navigation links. Note that you can style it with css as "
 "either a vertical or horizontal menu. In a sidebar it would default to "
 "vertical."
 msgstr ""
 
-#: ../whmcs-integration.php:1586
+#: ../whmcs-integration.php:1613
 msgid "WHMCS Account Information:"
 msgstr ""
 
-#: ../whmcs-integration.php:1591 ../whmcs-integration.php:1903
+#: ../whmcs-integration.php:1618 ../whmcs-integration.php:1930
 msgid ""
 "Displays the current logged in WHMCS user's account information. If no user "
 "is logged in it will display a login form and Knowledgebase search."
 msgstr ""
 
-#: ../whmcs-integration.php:1595
+#: ../whmcs-integration.php:1622
 msgid "WHMCS Statistics:"
 msgstr ""
 
-#: ../whmcs-integration.php:1600 ../whmcs-integration.php:1851
+#: ../whmcs-integration.php:1627 ../whmcs-integration.php:1878
 msgid ""
 "Displays the current logged in WHMCS user's product statistics. If no user "
 "is logged in it will not be displayed."
 msgstr ""
 
-#: ../whmcs-integration.php:1626
+#: ../whmcs-integration.php:1653
 msgid "WHMCS Single Sign On"
 msgstr ""
 
-#: ../whmcs-integration.php:1632
+#: ../whmcs-integration.php:1659
 msgid "WHMCS Administrator ID:"
 msgstr ""
 
-#: ../whmcs-integration.php:1638
+#: ../whmcs-integration.php:1665
 msgid "WHMCS Administrator Password:"
 msgstr ""
 
-#: ../whmcs-integration.php:1717 ../whmcs-integration.php:1770
-#: ../whmcs-integration.php:1822 ../whmcs-integration.php:1874
-#: ../whmcs-integration.php:1925 ../whmcs-integration.php:1977
+#: ../whmcs-integration.php:1744 ../whmcs-integration.php:1797
+#: ../whmcs-integration.php:1849 ../whmcs-integration.php:1901
+#: ../whmcs-integration.php:1952 ../whmcs-integration.php:2004
 msgid "New title"
 msgstr ""
 
-#: ../whmcs-integration.php:1721 ../whmcs-integration.php:1774
-#: ../whmcs-integration.php:1826 ../whmcs-integration.php:1878
-#: ../whmcs-integration.php:1929 ../whmcs-integration.php:1981
+#: ../whmcs-integration.php:1748 ../whmcs-integration.php:1801
+#: ../whmcs-integration.php:1853 ../whmcs-integration.php:1905
+#: ../whmcs-integration.php:1956 ../whmcs-integration.php:2008
 msgid "Title:"
 msgstr ""

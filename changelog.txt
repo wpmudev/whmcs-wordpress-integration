@@ -3,6 +3,10 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.1.3==
+- Added check for the PHP mbstring extension to warn on activation if it's not available
+- Fix to translation loading for multisite.
+
 ==1.2.1.2==
 - Added retry if the wrong template is set. Tries to force the portal template.
 

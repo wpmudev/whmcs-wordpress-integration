@@ -3,16 +3,18 @@
 Plugin Name: WHMCS WordPress Integration
 Plugin URI: http://premium.wpmudev.org/project/whmcs-wordpress-integration/
 Description: This plugin allows remote control of WHMCS from Wordpress. Now with Pretty permalinks.
-Author: Arnold Bailey {Incsub)
+Author: WPMU DEV
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.1.2
+Version: 1.2.1.3
 Network: false
 WDP ID: 263
 */
 
 /*  Copyright 2013  Incsub  (http://incsub.com)
+
+Author - Arnold Bailey
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2, as
@@ -29,9 +31,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 if(!function_exists('curl_init'))
-exit( __('The WHMCS WordPress Integration plugin requires the PHP Curl extensions.', WHMCS_TEXT_DOMAIN) );
+exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requires the PHP Curl extensions.</h3>', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.1.2');
+if(!function_exists('mb_get_info'))
+exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requires the PHP mbstring extensions.</h3>', WHMCS_TEXT_DOMAIN) );
+
+define('WHMCS_INTEGRATION_VERSION','1.2.1.3');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -160,6 +165,7 @@ class WHMCS_Wordpress_Integration{
 		add_action('wp_loaded', array(&$this,'on_wp_loaded'));
 		add_action('admin_menu', array(&$this,'on_admin_menu'));
 		add_action('wp_enqueue_scripts', array(&$this,'on_enqueue_scripts'));
+		add_action('plugins_loaded', array(&$this,'on_plugins_loaded'));
 
 		//add_action('template_redirect', array(&$this,'get_remote_cookies'));
 
@@ -208,7 +214,11 @@ class WHMCS_Wordpress_Integration{
 		$this->settings = get_option(WHMCS_SETTINGS_NAME);
 
 		//cleanup
-		@$this->remote_host = $this->settings['remote_host'] = url_to_absolute( $this->settings['remote_host'],'./');
+		try{
+			$this->remote_host = $this->settings['remote_host'] = url_to_absolute( $this->settings['remote_host'],'./');
+		}
+		catch(Exception $e) {}; //fatal error if no mbstring extension
+
 		@$this->content_page_id = $this->settings['content_page'] = (is_numeric($this->settings['content_page'])) ?  intval($this->settings['content_page']) : 0;
 		$this->settings['encode_url'] = empty($this->settings['encode_url']) ?  $this->settings['remote_host'] : $this->settings['encode_url'];
 		$this->settings['http_sig'] = empty($this->settings['http_sig']) ? 0 : $this->settings['http_sig'];
@@ -322,6 +332,7 @@ class WHMCS_Wordpress_Integration{
 	*/
 	function on_init(){
 
+
 		// add endpoints for front end special pages
 		add_rewrite_endpoint($this->WHMCS_PORTAL,
 		EP_PAGES
@@ -349,11 +360,13 @@ class WHMCS_Wordpress_Integration{
 			}
 		}
 
-		load_plugin_textdomain( WHMCS_TEXT_DOMAIN, false, '/languages/' );
-
 		$parts = split_url(get_permalink($this->content_page_id));
 		$this->content_page_path = $parts['path'];
 
+	}
+
+	function on_plugins_loaded(){
+		load_plugin_textdomain( WHMCS_TEXT_DOMAIN, false, dirname(plugin_basename( __FILE__ ) ) . '/languages/' );
 	}
 
 	function on_enqueue_scripts(){
