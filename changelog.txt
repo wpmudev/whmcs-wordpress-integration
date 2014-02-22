@@ -4,7 +4,7 @@ Author: Arnold Bailey
 == Change Log ==
 
 ==1.2.1.4==
-- Added several client IP headers to fix the real ip logging of WHMCS on different server types. They recently changed their empahasis on certina headers.
+- Added several client IP headers to fix the real ip logging of WHMCS on different server types. They recently changed their emphasis on certain headers.
 
 ==1.2.1.3==
 - Added check for the PHP mbstring extension to warn on activation if it's not available
