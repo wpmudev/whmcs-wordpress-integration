@@ -7,7 +7,7 @@ Author: WPMU DEV
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.1.3
+Version: 1.2.1.4
 Network: false
 WDP ID: 263
 */
@@ -36,7 +36,7 @@ exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requir
 if(!function_exists('mb_get_info'))
 exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requires the PHP mbstring extensions.</h3>', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.1.3');
+define('WHMCS_INTEGRATION_VERSION','1.2.1.4');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -547,12 +547,19 @@ class WHMCS_Wordpress_Integration{
 		}
 
 		$body = null;
-		$headers = array('X-Forwarded-For' => $_SERVER['REMOTE_ADDR']);
+
+		//a slew of ip headers to convince WHMCS of our real ip
+		$forward = $_SERVER['REMOTE_ADDR'];
+		$headers = array(
+		'Client-IP' =>  $forward, //For non-apache servers
+		'X-Forwarded-For' =>  $forward, //Most like this one
+		'X-Forwarded' =>  $forward,
+		'X-Cluster-Client-IP' =>  $forward,
+		 );
 
 		switch ($this->method){
 
 			case 'POST' : {
-
 				$this->debug_print('$_POST ' . $url);
 				$this->debug_print($_POST);
 
