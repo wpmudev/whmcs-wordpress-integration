@@ -7,12 +7,12 @@ Author: WPMU DEV
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.1.4
+Version: 1.2.1.5
 Network: false
 WDP ID: 263
 */
 
-/*  Copyright 2013  Incsub  (http://incsub.com)
+/*  Copyright 2013-2014  Incsub  (http://incsub.com)
 
 Author - Arnold Bailey
 
@@ -36,13 +36,17 @@ exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requir
 if(!function_exists('mb_get_info'))
 exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requires the PHP mbstring extensions.</h3>', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.1.4');
+if(!function_exists('mcrypt_encrypt'))
+exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requires the PHP mcrypt extensions.</h3>', WHMCS_TEXT_DOMAIN) );
+
+define('WHMCS_INTEGRATION_VERSION','1.2.1.5');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
 define('WHMCS_INTEGRATION_DIR', plugin_dir_path(__FILE__) );
 define('WHMCS_INTEGRATION_CACHE_URL', plugin_dir_url(__FILE__) . 'cache/');
 define('WHMCS_INTEGRATION_CACHE_DIR', plugin_dir_path(__FILE__) . 'cache/');
+define('WHMCS_INTEGRATION_COOKIE', 'WP_WHMCS');
 
 if(!defined('CURL_SSLVERSION_DEFAULT') ) define('CURL_SSLVERSION_DEFAULT', 0);
 if(!defined('CURL_SSLVERSION_TLSv1') ) define('CURL_SSLVERSION_TLSv1', 1);
@@ -340,16 +344,20 @@ class WHMCS_Wordpress_Integration{
 		//| EP_PERMALINK
 		);
 
-		//setup cache files for current session
-		if( !session_id() ) session_start();
-		$this->sid = session_id();
+		//Cookie to identify session.
+		if( empty($_COOKIE[WHMCS_INTEGRATION_COOKIE]) ){
+			$_COOKIE[WHMCS_INTEGRATION_COOKIE] = md5( mt_rand() );
+			setcookie(WHMCS_INTEGRATION_COOKIE, $_COOKIE[WHMCS_INTEGRATION_COOKIE], 0, '/' );
+		}
+		$this->sid = $_COOKIE[WHMCS_INTEGRATION_COOKIE];
 
+		//Set Transient name
 		$this->pending_cookies = 'whmcs_cookie_' . $this->sid;
 
 		//Setup session specific cookies for WHMCS
 		if(! is_dir(WHMCS_INTEGRATION_CACHE_DIR)) mkdir(WHMCS_INTEGRATION_CACHE_DIR, 0755);
 		if(! is_writable(WHMCS_INTEGRATION_CACHE_DIR) ) chmod(WHMCS_INTEGRATION_CACHE_DIR, 0755);
-		//if(! is_writable(WHMCS_INTEGRATION_CACHE_DIR) ) chmod(WHMCS_INTEGRATION_CACHE_DIR, 0777);
+		if(! is_writable(WHMCS_INTEGRATION_CACHE_DIR) ) chmod(WHMCS_INTEGRATION_CACHE_DIR, 0777);
 		$this->cache = WHMCS_INTEGRATION_CACHE_DIR . "{$this->sid}.txt";
 
 		//Clean out old cache files
@@ -367,6 +375,8 @@ class WHMCS_Wordpress_Integration{
 
 	function on_plugins_loaded(){
 		load_plugin_textdomain( WHMCS_TEXT_DOMAIN, false, dirname(plugin_basename( __FILE__ ) ) . '/languages/' );
+
+
 	}
 
 	function on_enqueue_scripts(){
@@ -555,7 +565,7 @@ class WHMCS_Wordpress_Integration{
 		'X-Forwarded-For' =>  $forward, //Most like this one
 		'X-Forwarded' =>  $forward,
 		'X-Cluster-Client-IP' =>  $forward,
-		 );
+		);
 
 		switch ($this->method){
 
@@ -758,6 +768,33 @@ class WHMCS_Wordpress_Integration{
 
 	}
 
+	function redirect($matches, &$text){
+		$unique = array_unique($matches[1]);
+		sort($unique);
+		foreach($unique as $s){
+			$u = $this->redirect_url($s);
+			$text = str_replace($s, $u, $text);
+		}
+	}
+
+	function redirect_gateways( &$text){
+
+		//2Checkout return and cancel references
+		if( preg_match_all('`name="return_url" value=\"([^\"]*)\"`',$text, $matches) !== false){ $this->redirect($matches, $text); }
+
+		//Amazon Simple Pay return and cancel references
+		if( preg_match_all('`name="abandonUrl" value=\"([^\"]*)\"`',$text, $matches) !== false){ $this->redirect($matches, $text); }
+		if( preg_match_all('`name="returnUrl" value=\"([^\"]*)\"`',$text, $matches) !== false){ $this->redirect($matches, $text); }
+
+		//PayPal return and cancel references
+		if( preg_match_all('`name="return" value=\"([^\"]*)\"`',$text, $matches) !== false){ $this->redirect($matches, $text); }
+		if( preg_match_all('`name="cancel_return" value=\"([^\"]*)\"`',$text, $matches) !== false){ $this->redirect($matches, $text); }
+
+		//Quantum return and cancel references
+		if( preg_match_all('`name="post_return_url_approved" value=\"([^\"]*)\"`',$text, $matches) !== false){ $this->redirect($matches, $text); }
+		if( preg_match_all('`name="post_return_url_declined" value=\"([^\"]*)\"`',$text, $matches) !== false){ $this->redirect($matches, $text); }
+
+	}
 
 	/**
 	* redirect_javascript - redirects any javascript locations or css urls to WHMCS
@@ -812,25 +849,8 @@ class WHMCS_Wordpress_Integration{
 			}
 		}
 
-		//PayPal return and cancel references
-		if( preg_match_all('`name="return" value=\"(.*)\"`',$text, $matches) !== false){
-			$unique = array_unique($matches[1]);
-			sort($unique);
-			foreach($unique as $s){
-				$u = $this->redirect_url($s);
-				$text = str_replace($s, $u, $text);
-			}
-		}
-
-		//PayPal return and cancel references
-		if( preg_match_all('`name="cancel_return" value=\"(.*)\"`',$text, $matches) !== false){
-			$unique = array_unique($matches[1]);
-			sort($unique);
-			foreach($unique as $s){
-				$u = $this->redirect_url($s);
-				$text = str_replace($s, $u, $text);
-			}
-		}
+		//Redirect the Gateways
+		$this->redirect_gateways($text);
 
 		//Special cases ==================
 
@@ -842,6 +862,7 @@ class WHMCS_Wordpress_Integration{
 		//WHMCS v5.2 Extra apostrophe confuses some browsers /templates/portal/clientareadomains.tpl line 34
 		$text = preg_replace('#(domaindetails&id=\d+)\'(\">)#','$1$2', $text);
 
+		//Modern slideup
 		$text = str_replace('jQuery("#domainresults").slideUp();', '//jQuery("#domainresults").slideUp();', $text );
 
 
@@ -960,10 +981,20 @@ class WHMCS_Wordpress_Integration{
 	*/
 	function on_parse_request($wp){
 
+		$this->debug = ($this->debug) ? $this->debug : isset($_REQUEST['whmcs_debug']) && ($_REQUEST['whmcs_debug'] == 'true');
+
+		if($this->debug) $this->debug_print(array(
+		'remote_host' => $this->remote_host,
+		'default_page' => get_permalink($this->content_page_id),
+		'endpoint' => $this->WHMCS_PORTAL,
+		'sid' => $this->sid,
+		'cookies' => print_r($_COOKIE, true),
+		));
+
+
 		// If no whmcs data then not for us
 		if( empty($wp->query_vars[$this->WHMCS_PORTAL]) ) return;
 
-		$this->debug = ($this->debug) ? $this->debug : isset($_REQUEST['debug']) && ($_REQUEST['debug'] == 'true');
 
 		if($this->debug) $this->debug_print($wp);
 
@@ -1065,10 +1096,12 @@ class WHMCS_Wordpress_Integration{
 			$href = url_to_absolute($this->remote_host, $css->getAttribute('href') );
 			if( (strpos( strtolower($href), '/jscript/css/') !== false)
 			||  (strpos( strtolower($href), '/invoicestyle') !== false)
+			//||  (strpos( strtolower($href), '/portal') !== false)
 			||  (strpos( strtolower($href), '/orderforms/') !== false)
 			) {
 				$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.css'), '', $href) );
 				wp_enqueue_style($handle, $href);
+				$css->parentNode->removeChild($css);
 			}
 		}
 
@@ -1172,7 +1205,7 @@ class WHMCS_Wordpress_Integration{
 				$url = add_query_arg(array('systpl' => 'portal'), $this->whmcs_request_url);
 				wp_redirect( $this->redirect_url( $url ) );
 				exit;
-			} elseif( !defined(DOING_AJAX) ){
+			} elseif( !defined('DOING_AJAX') && DOING_AJAX ){
 				// Doesn't look like a Portal page return an error in all shortcodes
 				$error = $this->content->createElement('div');
 				$error->setAttribute('class', 'whmcs_error');
@@ -1346,7 +1379,6 @@ class WHMCS_Wordpress_Integration{
 		} else {
 			$result = true;
 		}
-
 		return $result;
 	}
 
@@ -1698,7 +1730,7 @@ class WHMCS_Wordpress_Integration{
 	function get_captcha_url(){
 		$this->method = 'GET';
 
-		$fname = "verify-" . session_id() . '.png';
+		$fname = "verify-{$this->sid}.png";
 
 		@unlink(WHMCS_INTEGRATION_CACHE_DIR . $fname);
 

@@ -27,6 +27,10 @@ td{
 	position: relative;
 }
 
+#order-modern{
+	position: relative;
+}
+
 /* horizontal if in the main contents */
 #content .whmcs_menu ul {
 	padding: 0;

@@ -3,6 +3,12 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.1.5==
+--Changed from using $_SESSION to a cookie system to support hosts like WPENGINE that break sessions.
+- Fixed set 0755 or 0777 chmod on the cache directory.
+--Added Quantum Gateway Support
+--wp-integration.php now returns text/css mime.
+
 ==1.2.1.4==
 - Added several client IP headers to fix the real ip logging of WHMCS on different server types. They recently changed their emphasis on certain headers.
 
