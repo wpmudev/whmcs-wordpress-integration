@@ -15,6 +15,7 @@ WDP ID: 263
 /*  Copyright 2013-2014  Incsub  (http://incsub.com)
 
 Author - Arnold Bailey
+Contributors - Jose Jaureguiberry
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2, as
@@ -501,6 +502,10 @@ class WHMCS_Wordpress_Integration{
 				//For WPv3.7.1
 				$fs = preg_replace('#(\/\/\s*Handle\s*redirects\s*\n)(\s*if.*\n.*;\n)#',
 				"$1\t\tif( apply_filters('http_api_redirect', true)){ //Added by WHMCS Integration\n\t$2\t\t}\n", $fs);
+
+                //For WPv4.0
+                $fs = preg_replace('#(\/\/\s*Handle\s*redirects.\s*\n)(\s*if.*\n.*;\n)#',
+                "$1\t\tif( apply_filters('http_api_redirect', true)){ //Added by WHMCS Integration\n\t$2\t\t}\n", $fs);
 
 				if($fs){
 					if(! is_writable($fname) ) chmod($fname, 0666);

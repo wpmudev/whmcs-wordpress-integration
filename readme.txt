@@ -1,9 +1,9 @@
 === WHMCS WordPress Integration ===
-Contributors: Arnold Bailey (Incsub)
+Contributors: Arnold Bailey, Jose Jaureguiberry (Incsub)
 Tags: WHMCS, hosting, support, billing, integration
 Requires at least: 3.2
-Tested up to: 3.6.1
-Stable tag: 1.2.0
+Tested up to: 4.0
+Stable tag: 1.2.1.6
 
 WHMCS WordPress Integration is a plugin for displaying the Client area of WHMCS in Wordpress. The WHMCS screens take on the styling of the Wordpress theme used.
 
@@ -22,7 +22,7 @@ WHMCS WordPress Integration allows your customers to interact through Wordpress 
 5. Add the [wcp_content] shortcode to the page to display the main WHMCS content area.
 6. You can add the other Shortcodes listed on the WHMCS Integration Settings page to you Sidebars or other pages to display other WHMCS information
 
-The Endpoint Slug is the slug that signals that the following page is to be pulled from the WHMCS site. It defaults to “whmcsportal”. The permalinks will look like.
+The Endpoint Slug is the slug that signals that the following page is to be pulled from the WHMCS site. It defaults to ï¿½whmcsportalï¿½. The permalinks will look like.
 
 http://wpwhmcs.com/whmcsportal/clientarea.php/
 
@@ -32,7 +32,7 @@ You can change the slug to whatever you like to avoid interfering with other pag
 
 In order to be able to download protected files from WHMCS Downloads or Knowledgebase sections you will need to install a small helper file called
 
-“wp-integration.php”
+ï¿½wp-integration.phpï¿½
 
 from the plugin to the root of your WHMCS installation.
 

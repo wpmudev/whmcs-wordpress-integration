@@ -3,6 +3,9 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.1.6==
+- Fix: Redirection issues in WP 4.0.
+
 ==1.2.1.5==
 --Changed from using $_SESSION to a cookie system to support hosts like WPENGINE that break sessions.
 - Fixed set 0755 or 0777 chmod on the cache directory.
