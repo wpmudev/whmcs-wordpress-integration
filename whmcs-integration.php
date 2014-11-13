@@ -64,7 +64,7 @@ $wpmudev_notices[] = array( 'id'=> 263,
 'toplevel_page_wcp-settings',
 ) );
 
-include_once(plugin_dir_path(__FILE__) .'lib/wpmudev-dash-notification.php');
+include_once(plugin_dir_path(__FILE__) .'dash-notice/wpmudev-dash-notification.php');
 
 add_filter('widget_text', 'do_shortcode'); // Allows use of shortcodes in widgets
 
