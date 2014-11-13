@@ -7,7 +7,7 @@ Author: WPMU DEV
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.1.6
+Version: 1.2.1.7
 Network: false
 WDP ID: 263
 */
