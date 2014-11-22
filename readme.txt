@@ -3,7 +3,7 @@ Contributors: Arnold Bailey, Jose Jaureguiberry (Incsub)
 Tags: WHMCS, hosting, support, billing, integration
 Requires at least: 3.2
 Tested up to: 4.0
-Stable tag: 1.2.1.7
+Stable tag: 1.2.1.8
 
 WHMCS WordPress Integration is a plugin for displaying the Client area of WHMCS in Wordpress. The WHMCS screens take on the styling of the Wordpress theme used.
 

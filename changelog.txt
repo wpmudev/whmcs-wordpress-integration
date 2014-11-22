@@ -3,6 +3,10 @@ Author: Arnold Bailey
 
 == Change Log ==
 
+==1.2.1.8==
+- Fix: Redirection issues on HTTPS installs.
+- New: Added Pre and Post redirection hooks.
+
 ==1.2.1.7==
 - Fix: Redirection issues in WP 4.0.
 

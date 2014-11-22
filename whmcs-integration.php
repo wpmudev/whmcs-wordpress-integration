@@ -7,7 +7,7 @@ Author: WPMU DEV
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.2.1.7
+Version: 1.2.1.8
 Network: false
 WDP ID: 263
 */
@@ -40,7 +40,7 @@ exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requir
 if(!function_exists('mcrypt_encrypt'))
 exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requires the PHP mcrypt extensions.</h3>', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.2.1.5');
+define('WHMCS_INTEGRATION_VERSION','1.2.1.8');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
@@ -550,6 +550,8 @@ class WHMCS_Wordpress_Integration{
 
 	function redirect_request($url, $post_fields = ''){
 
+        do_action('whmcs_pre_redirect_request', $url, $post_fields);
+
 		//grab WP_Http
 		add_action('http_api_curl',array(&$this,'cache_cookies'));
 		add_filter('http_curl_headers', array(&$this,'filter_headers'));
@@ -673,7 +675,7 @@ class WHMCS_Wordpress_Integration{
 
 				if(in_array($response['response']['code'], array(302, 303 ) ) ) $this->method = 'GET';
 
-				if( strpos( strtolower($newurl), strtolower($this->remote_host) ) !== false){
+                if( false !== strpos( strtolower($newurl), strtolower(substr($this->remote_host, strpos($this->remote_host, '//'))) )){
 					$response =  $this->redirect_request( $newurl , $this->post_fields );
 				} else {
 					wp_redirect($newurl);
@@ -697,6 +699,9 @@ class WHMCS_Wordpress_Integration{
 		remove_filter('http_api_redirect', array($this,'filter_redirect'));
 		remove_filter('http_curl_headers', array($this,'filter_headers'));
 		remove_action('http_api_curl',array($this,'cache_cookies'));
+
+        do_action('whmcs_post_redirect_request',$response, $url, $post_fields);
+
 		return $response;
 	}
 
