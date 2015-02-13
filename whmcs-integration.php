@@ -678,6 +678,9 @@ class WHMCS_Wordpress_Integration{
                 if( false !== strpos( strtolower($newurl), strtolower(substr($this->remote_host, strpos($this->remote_host, '//'))) )){
 					$response =  $this->redirect_request( $newurl , $this->post_fields );
 				} else {
+                    //Workaround for wp_sanitize_redirect. urlencode or rawurlencode do not work in this case.
+                    $newurl = str_replace('@','%40',$newurl);//Avoid at symbol to be stripped out by wp_sanitize_redirect.
+                    $newurl = str_replace('+','%2B',$newurl);//Avoid + symbol to be stripped out by wp_sanitize_redirect.
 					wp_redirect($newurl);
 					exit;
 				}
