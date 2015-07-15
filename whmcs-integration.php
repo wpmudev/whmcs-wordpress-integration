@@ -48,6 +48,9 @@ define('WHMCS_INTEGRATION_DIR', plugin_dir_path(__FILE__) );
 define('WHMCS_INTEGRATION_CACHE_URL', plugin_dir_url(__FILE__) . 'cache/');
 define('WHMCS_INTEGRATION_CACHE_DIR', plugin_dir_path(__FILE__) . 'cache/');
 define('WHMCS_INTEGRATION_COOKIE', 'WP_WHMCS');
+if(!defined('WHMCS_TEMPLATE') ) define('WHMCS_TEMPLATE', 'six');
+if(!defined('WHMCS_LOAD_BOOTSTRAP') ) define('WHMCS_LOAD_BOOTSTRAP', true);
+if(!defined('WHMCS_LOAD_STYLES') ) define('WHMCS_LOAD_STYLES', true);
 
 if(!defined('CURL_SSLVERSION_DEFAULT') ) define('CURL_SSLVERSION_DEFAULT', 0);
 if(!defined('CURL_SSLVERSION_TLSv1') ) define('CURL_SSLVERSION_TLSv1', 1);
@@ -113,6 +116,9 @@ class WHMCS_Wordpress_Integration{
 
 	//DOMDocument containing the Statistics parsed from WHMCS
 	public $statistics = null;
+
+    //DOMDocument containing the sidebar widgets parsed from WHMCS.
+    public $sidebar_widgets = null;
 
 	//WHMCS base url
 	public $whmcs_base = '';
@@ -195,6 +201,7 @@ class WHMCS_Wordpress_Integration{
 		add_shortcode('wcp_quick_nav', array(&$this,'quick_nav_shortcode'));
 		add_shortcode('wcp_account', array(&$this,'account_shortcode'));
 		add_shortcode('wcp_statistics', array(&$this,'statistics_shortcode'));
+        add_shortcode('wcp_sidebar_widgets', array(&$this,'sidebar_shortcode'));
 
 		add_action('wp_ajax_whmcs_ajax',array(&$this,'whmcs_ajax'));
 		add_action('wp_ajax_nopriv_whmcs_ajax',array(&$this,'whmcs_ajax'));
@@ -247,7 +254,7 @@ class WHMCS_Wordpress_Integration{
 	function wp_pointer_load(){
 
 		//var_dump(get_current_screen());
-		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-portal.css', array(), WHMCS_INTEGRATION_VERSION );
+		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-' . WHMCS_TEMPLATE . '.css', array(), WHMCS_INTEGRATION_VERSION );
 		wp_enqueue_style('whmcs_portal');
 
 		$cookie_content = __('<p>WHMCS WordPress Integration can now sync certain cookies between WHMCS and Wordpress so that downloads of protected files from WHMCS can work correctly in WordPress.</p> <p>This requires copying the "wp-integration.php" file in this plugin to the root of the WHMCS System installation.</p>', WHMCS_TEXT_DOMAIN);
@@ -382,7 +389,7 @@ class WHMCS_Wordpress_Integration{
 
 	function on_enqueue_scripts(){
 		wp_enqueue_script('jquery');
-		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-portal.css', array(), WHMCS_INTEGRATION_VERSION );
+		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-' . WHMCS_TEMPLATE . '.css', array(), WHMCS_INTEGRATION_VERSION );
 		wp_enqueue_style('whmcs_portal');
 
 
@@ -1100,6 +1107,13 @@ class WHMCS_Wordpress_Integration{
 	*
 	*/
 	function parse_whmcs(){
+        if(defined('WHMCS_TEMPLATE') && 'portal' == WHMCS_TEMPLATE){
+            $this->parse_portal_template();
+        } else {
+            $this->parse_six_template();
+        }
+    }
+	function parse_six_template(){
 
 		$xpath = new DOMXPath($this->dom);
 
@@ -1107,6 +1121,383 @@ class WHMCS_Wordpress_Integration{
 		$this->css = $xpath->query('//link[@rel="stylesheet"]');
 		foreach($this->css as $css) {
 			$href = url_to_absolute($this->remote_host, $css->getAttribute('href') );
+
+            $handle = str_replace('/', '-', str_replace(array($this->remote_host, '.css', '.min'), '', $href) );
+            if(strpos( strtolower($href), 'font-awesome.min.css')){
+                wp_enqueue_style($handle, '/wp-content/plugins/whmcs-wordpress-integration/css/font-awesome.min.css');
+            } else if (strpos( strtolower($href), 'bootstrap.min.css')){
+                if( defined('WHMCS_LOAD_BOOTSTRAP') && true === WHMCS_LOAD_BOOTSTRAP ){
+                    wp_enqueue_style($handle, '/wp-content/plugins/whmcs-wordpress-integration/css/bootstrap.min.css');
+                }
+            } else if (strpos( strtolower($href), '/templates/') !== false){
+                if( defined('WHMCS_LOAD_STYLES') && true === WHMCS_LOAD_STYLES ){
+                    wp_enqueue_style($handle, $href);
+                }
+            } else {
+                wp_enqueue_style($handle, $href);
+            }
+
+            $css->parentNode->removeChild($css);
+		}
+
+		//redirect WHMCS images
+		$srcs = $xpath->query('//@src');
+		foreach($srcs as $src){
+			$url = url_to_absolute($this->remote_host, $src->textContent);
+			if(strpos( strtolower($url), 'verifyimage.php') !== false) {
+				$url = $this->get_captcha_url();
+			}
+			$src->parentNode->setAttribute('src', $url) ;
+		}
+
+		//redirect WHMCS hrefs
+		$hrefs = $xpath->query('//@href');
+		foreach($hrefs as $href){
+			$hr = $href->textContent;
+
+			//take care of special cases
+			if ( $hr == '#' || (false !== strpos($hr, 'javascript:'))) continue;
+
+			$href->parentNode->setAttribute('href', $this->redirect_url($hr));
+		}
+
+        //redirect onclick parameters.
+        $onclicks = $xpath->query('//@onclick');
+        foreach($onclicks as $onclick){
+            $onclick_target = $onclick->textContent;
+
+            if( preg_match_all('`clickableSafeRedirect\(\s*event\s*,\s*\'([^\']*)\'`',$onclick_target, $matches) !== false){
+                $new_target = false;
+                $unique = array_unique($matches[1]); //Only replace once
+                sort($unique); //Sort so replacements included go first
+                foreach($unique as $s){
+                    $u = $this->redirect_url($s);
+
+                    $new_target = str_replace("'{$s}'", "'{$u}'", $onclick_target);
+                }
+                if($new_target){
+                    $onclick->parentNode->setAttribute('onclick', $new_target);
+                }
+            }
+        }
+
+		//redirect form action
+		$actions = $xpath->query('//@action');
+		foreach($actions as $action){
+			$action->parentNode->setAttribute('action', $this->redirect_url($action->textContent));
+		}
+
+		/**
+		* Collect and queue the Content
+		*/
+
+		$this->content = new DOMDocument('1.0', 'utf-8');
+		$this->content->formatOutput = true;
+
+		$root = $this->content->createElement('div');
+		$this->content->appendChild($root);
+
+		$root->setAttribute('id', 'whmcs_portal');
+		$root->setAttribute('class', 'whmcs_portal');
+
+		$comment = $this->content->createComment("Begin WHMCS Integration");
+		$root->appendChild($comment);
+
+		//Collect head scripts
+		$this->scripts = $xpath->query('//head//script');
+		foreach($this->scripts as $script) {
+			$src = $script->getAttribute('src');
+
+			if(empty($src) ) { //Inline scripts
+				$root->appendChild($this->content->importNode($script, true));
+			}
+			$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.js', '.min'), '', $src) );
+			if( (strpos( strtolower($src), '/templates/') !== false) )
+			{
+				$script->setAttribute('src', $this->cache_javascript($src));
+				wp_enqueue_script($handle, $src);
+			}
+
+			if(strpos( strtolower($src), '/assets/js/') !== false) {
+                if(strpos( strtolower($src), 'jquery.min.js') !== false){
+                    wp_enqueue_script('jquery');
+                }
+				wp_enqueue_script($handle, $src);
+			}
+		}
+
+        //Collect body scripts
+        $this->scripts = $xpath->query('//body//script');
+        foreach($this->scripts as $script) {
+            $src = $script->getAttribute('src');
+
+            if(empty($src) ) { //Inline scripts
+                $script->nodeValue = 'jQuery(document).ready(function($){ ' . $script->nodeValue . '});';
+                $root->appendChild($this->content->importNode($script, true));
+            }
+
+            $handle = str_replace('/', '-', str_replace(array($this->remote_host, '.js', '.min'), '', $src) );
+            if( (strpos( strtolower($src), '/templates/') !== false) )
+            {
+                $script->setAttribute('src', $this->cache_javascript($src));
+
+                if( (strpos( strtolower($src), 'templates/six/js/whmcs.js') !== false) )
+                {
+                    wp_enqueue_script($handle, $src, array('assets-js-bootstrap'));
+                } else {
+                    wp_enqueue_script($handle, $src);
+                }
+
+            }
+
+            if(strpos( strtolower($src), '/assets/js/') !== false) {
+
+                if( (strpos( strtolower($src), '/assets/js/bootstrap') !== false) )
+                {
+                    wp_enqueue_script($handle, $src, array('jquery'));
+                } else {
+                    wp_enqueue_script($handle, $src);
+                }
+            }
+        }
+
+		$nodes = $this->dom->getElementsByTagName('body');
+
+		//Un parsed pages
+		if(strpos( strtolower($this->whmcs_request_url), 'viewinvoice.php') !== false
+		|| strpos( strtolower($this->whmcs_request_url), 'viewemail.php') !== false
+		|| strpos( strtolower($this->whmcs_request_url), 'viewquote.php') !== false
+		|| strpos( strtolower($this->whmcs_request_url), 'whois.php') !== false
+		){
+			$content = $nodes->item(0);
+		} else {
+            $content_top = $xpath->query('//section[@id="main-body"]/div[@class="row"]/div[1]')->item(0);
+
+			$content = $xpath->query('//div[contains(@class, "main-content")]')->item(0);
+
+		}
+
+        if($content_top){
+            $content_top_class = str_replace('col-md-9', 'col-md-12', $content_top->getAttribute('class'));
+            $content_top->removeAttribute('class');
+            $content_top->setAttribute('class', $content_top_class);
+
+            $root->appendChild($this->content->importNode($content_top, true));
+        }
+
+		if($content){
+            $content_class = str_replace('col-md-9', 'col-md-12', $content->getAttribute('class'));
+            $content->removeAttribute('class');
+            $content->setAttribute('class', $content_class);
+
+            while (($r = $content->getElementsByTagName("script")) && $r->length) {
+                $r->item(0)->parentNode->removeChild($r->item(0));
+            }
+			$root->appendChild($this->content->importNode($content, true));
+		} else {
+
+			//Has it already tried to force the portal template
+
+			if( (strpos( strtolower($this->whmcs_request_url), 'systpl') === false) && !$this->doing_ajax ) {
+				//Try to force the portal template
+				$url = add_query_arg(array('systpl' => WHMCS_TEMPLATE), $this->whmcs_request_url);
+				wp_redirect( $this->redirect_url( $url ) );
+				exit;
+			} elseif( !defined('DOING_AJAX') ){
+				// Doesn't look like a Portal page return an error in all shortcodes
+				$error = $this->content->createElement('div');
+				$error->setAttribute('class', 'whmcs_error');
+
+				$error_text = new DOMText( sprintf( __('Sorry this doesn\'t look like a WHMCS site at [%1$s]',WHMCS_TEXT_DOMAIN), $this->remote_host)
+				. __('  Make sure your WHMCS Integration settings are pointing to the correct URL and that the WHMCS site is set for the Portal template in Setup | General.',WHMCS_TEXT_DOMAIN));
+
+				$error->appendChild($error_text);
+
+				$this->content->appendChild($error);
+
+				$this->welcome = $this->content;
+				$this->menu = $this->content;
+				$this->account = $this->content;
+				$this->statistics = $this->content;
+				$this->quick_nav = $this->content;
+                $this->sidebar_widgets = $this->content;
+
+				return;
+			}
+		}
+
+		$comment = $this->content->createComment('End WHMCS Integration');
+		$root->appendChild($comment);
+
+		/*
+		*	Collect the Top Menu
+		*/
+		$this->menu = new DOMDocument('1.0', 'UTF-8');
+
+		$root = $this->menu->createElement('div');
+		$this->menu->appendChild($root);
+
+		$root->setAttribute('id', 'whmcs_menu');
+		$root->setAttribute('class', 'whmcs_menu');
+
+		$comment = $this->menu->createComment('Begin WHMCS Menu');
+		$root->appendChild($comment);
+
+		//$menu = $this->dom->getElementById('main-menu');
+        $menu = $xpath->query('//nav[@id="nav"]')->item(0);
+        $welcome_menu = $xpath->query('//nav[@id="nav"]//ul[contains(@class,"navbar-right")]')->item(0);
+        if($welcome_menu){
+            $welcome_menu->parentNode->removeChild($welcome_menu);
+        }
+
+        $menu_container = $xpath->query('//nav[@id="nav"]//div[@class="container"]')->item(0);
+        if($menu_container){
+            $menu_container->setAttribute('class', '');
+        }
+
+		if($menu){
+			$root->appendChild($this->menu->importNode($menu, true));
+		}
+
+		$comment = $this->menu->createComment('End WHMCS Menu');
+		$this->menu->appendChild($comment);
+
+
+		/**
+		*	Collect the Welcome Box
+		*/
+		$this->welcome = new DOMDocument('1.0', 'UTF-8');
+
+		$root = $this->welcome->createElement('div');
+		$this->welcome->appendChild($root);
+
+		$root->setAttribute('id', 'whmcs_welcome');
+		$root->setAttribute('class', 'whmcs_welcome nav');
+
+		$comment = $this->welcome->createComment('Begin WHMCS Welcome');
+		$root->appendChild($comment);
+
+		$welcome = $this->dom->getElementById('Secondary_Navbar-Account');
+
+		if($welcome){
+			$root->appendChild($this->welcome->importNode($welcome, true));
+		}
+
+		$comment = $this->welcome->createComment('End WHMCS Welcome');
+		$this->welcome->appendChild($comment);
+
+		/**
+		* Collect the Quick Nav
+		*/
+		//$sidebar = $this->dom->getElementById('side_menu');
+        $shortcuts = $xpath->query('//div[contains(@menuitemname, "Client Shortcuts")]')->item(0);
+
+
+
+		$this->quick_nav = new DOMDocument('1.0', 'UTF-8');
+
+		$root = $this->quick_nav->createElement('div');
+		$this->quick_nav->appendChild($root);
+
+		$root->setAttribute('id', 'whmcs_quick_nav');
+		$root->setAttribute('class', 'whmcs_quick_nav');
+
+		$comment = $this->quick_nav->createComment('Begin WHMCS Quick Nav');
+		$root->appendChild($comment);
+
+		if(! empty($shortcuts)){
+            $root->appendChild($this->quick_nav->importNode($shortcuts, true));
+
+			/*$nodes = $xpath->query('ul', $sidebar); // should be the quick nav
+			$qn = $nodes->item(0);
+
+			$nodes = $xpath->query('preceding-sibling::p', $qn); // should be the header
+
+			if($nodes->length > 0){
+				$root->appendChild($this->quick_nav->importNode($nodes->item(0),true));
+				$root->appendChild($this->quick_nav->importNode($qn,true));
+			}*/
+		}
+
+		$comment = $this->quick_nav->createComment('End WHMCS Quick Nav');
+		$root->appendChild($comment);
+
+
+		/*
+		* Collect the Account Info and Login form
+		*/
+        $account = $xpath->query('//div[contains(@menuitemname, "Client Details")]')->item(0);
+		$this->account = new DOMDocument('1.0', 'UTF-8');
+		$aroot = $this->account->createElement('div');
+		$this->account->appendChild($aroot);
+		$aroot->setAttribute('id', 'whmcs_account');
+		$aroot->setAttribute('class', 'whmcs_account');
+
+		$comment = $this->account->createComment('Begin WHMCS Account');
+		$aroot->appendChild($comment);
+
+        if(!empty($account)){
+            $aroot->appendChild($this->account->importNode($account,true));
+        }
+
+        $comment = $this->account->createComment('End WHMCS Account');
+        $aroot->appendChild($comment);
+
+        $statistics = $xpath->query('//div[contains(@menuitemname, "Client Statistics")]')->item(0);
+		$this->statistics = new DOMDocument('1.0', 'UTF-8');
+		$sroot = $this->statistics->createElement('div');
+		$this->statistics->appendChild($sroot);
+		$sroot->setAttribute('id', 'whmcs_statistics');
+		$sroot->setAttribute('class', 'whmcs_statistics');
+
+		$comment = $this->statistics->createComment('Begin WHMCS Statistics');
+		$sroot->appendChild($comment);
+
+        if( !empty($statistics)){
+            $sroot->appendChild($this->statistics->importNode($statistics,true));
+        }
+
+        $comment = $this->statistics->createComment('End WHMCS Statistics');
+        $sroot->appendChild($comment);
+
+
+
+        /*
+        *	Collect the Sidebar Widgets
+        */
+        $this->sidebar_widgets = new DOMDocument('1.0', 'UTF-8');
+
+        $root = $this->sidebar_widgets->createElement('div');
+        $this->sidebar_widgets->appendChild($root);
+
+        $root->setAttribute('id', 'whmcs_sidebar');
+        $root->setAttribute('class', 'whmcs_sidebar row');
+
+        $comment = $this->sidebar_widgets->createComment('Begin WHMCS Sidebar');
+        $root->appendChild($comment);
+
+        $sidebar_widgets = $xpath->query('//section[@id="main-body"]/div[@class="row"]/div[contains(@class,"sidebar")]');
+
+        if($sidebar_widgets && $sidebar_widgets->length > 0){
+            for ($i = 0; $i < $sidebar_widgets->length; $i++) {
+                $sidebar_item = $sidebar_widgets->item($i);
+                $sidebar_item->setAttribute('class', 'col-md-12 whmcs-sidebar-widget');
+                $root->appendChild($this->sidebar_widgets->importNode($sidebar_item, true));
+            }
+        }
+
+        $comment = $this->sidebar_widgets->createComment('End WHMCS Sidebar');
+        $this->sidebar_widgets->appendChild($comment);
+	}
+
+    function parse_portal_template(){
+
+        $xpath = new DOMXPath($this->dom);
+
+        //Collect the css
+        $this->css = $xpath->query('//link[@rel="stylesheet"]');
+        foreach($this->css as $css) {
+            $href = url_to_absolute($this->remote_host, $css->getAttribute('href') );
 			if( (strpos( strtolower($href), '/jscript/css/') !== false)
 			||  (strpos( strtolower($href), '/invoicestyle') !== false)
 			//||  (strpos( strtolower($href), '/portal') !== false)
@@ -1218,7 +1609,7 @@ class WHMCS_Wordpress_Integration{
 				$url = add_query_arg(array('systpl' => 'portal'), $this->whmcs_request_url);
 				wp_redirect( $this->redirect_url( $url ) );
 				exit;
-			} elseif( !defined('DOING_AJAX') && DOING_AJAX ){
+            } elseif( !defined('DOING_AJAX') ){
 				// Doesn't look like a Portal page return an error in all shortcodes
 				$error = $this->content->createElement('div');
 				$error->setAttribute('class', 'whmcs_error');
@@ -1387,7 +1778,7 @@ class WHMCS_Wordpress_Integration{
 			if( get_query_var($this->WHMCS_PORTAL) ){
 				$result = $this->load_whmcs_url(urldecode($this->whmcsportal['page']));
 			} else{
-				$result = $this->load_whmcs_url($this->settings['remote_host'] . '?' . apply_filters('whmcs_get_args', 'systpl=portal') );
+				$result = $this->load_whmcs_url($this->settings['remote_host'] . '?' . apply_filters('whmcs_get_args', 'systpl=' . WHMCS_TEMPLATE) );
 			}
 		} else {
 			$result = true;
@@ -1424,6 +1815,10 @@ class WHMCS_Wordpress_Integration{
 	function welcome_shortcode($attrs){
 		return ( $this->have_whmcs_page() ) ? $this->welcome->saveHTML() : '';
 	}
+
+    function sidebar_shortcode($attrs){
+        return ( $this->have_whmcs_page() ) ? $this->sidebar_widgets->saveHTML() : '';
+    }
 
 	/**
 	* Debug dump utility function
@@ -1652,6 +2047,21 @@ class WHMCS_Wordpress_Integration{
 											<?php _e('Displays the top menu from WHMCS. Note that you can style it with css as either a vertical or horizontal menu. In a sidebar it would default to vertical.',WHMCS_TEXT_DOMAIN); ?>
 										</td>
 									</tr>
+                                    <?php
+                                    if( defined('WHMCS_TEMPLATE') && 'portal' != WHMCS_TEMPLATE):
+                                    ?>
+									<tr>
+                                        <th><?php _e('WHMCS Sidebar Widgets:',WHMCS_TEXT_DOMAIN); ?></th>
+                                        <td>
+                                            <input type="text" size="20" value="[wcp_sidebar_widgets]" readonly="readonly" onmouseover="this.select();"/>
+                                        </td>
+                                        <td>
+                                            <?php _e("Displays the sidebar widgets associated to the current WHMCS page.",WHMCS_TEXT_DOMAIN); ?>
+                                        </td>
+                                    </tr>
+                                    <?php
+                                    else:
+                                        ?>
 									<tr>
 										<th><?php _e('WHMCS Quick Navigation:',WHMCS_TEXT_DOMAIN); ?></th>
 										<td>
@@ -1679,6 +2089,9 @@ class WHMCS_Wordpress_Integration{
 											<?php _e("Displays the current logged in WHMCS user's product statistics. If no user is logged in it will not be displayed.",WHMCS_TEXT_DOMAIN); ?>
 										</td>
 									</tr>
+                                        <?php
+                                    endif;
+                                        ?>
 								</tbody>
 							</table>
 						</div>
@@ -1919,7 +2332,9 @@ class WHMCS_Menu_Widget extends WP_Widget{
 
 }
 
+if( defined('WHMCS_TEMPLATE') && 'portal' == WHMCS_TEMPLATE){
 add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Statistics_Widget" );' ) );
+}
 class WHMCS_Statistics_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -1971,7 +2386,9 @@ class WHMCS_Statistics_Widget extends WP_Widget{
 
 }
 
+if( defined('WHMCS_TEMPLATE') && 'portal' == WHMCS_TEMPLATE){
 add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Account_Widget" );' ) );
+}
 class WHMCS_Account_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -2022,7 +2439,9 @@ class WHMCS_Account_Widget extends WP_Widget{
 
 }
 
+if( defined('WHMCS_TEMPLATE') && 'portal' == WHMCS_TEMPLATE){
 add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Quick_Navigation_Widget" );' ) );
+}
 class WHMCS_Quick_Navigation_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -2044,6 +2463,61 @@ class WHMCS_Quick_Navigation_Widget extends WP_Widget{
 		if ( $title ) echo $before_title . $title . $after_title;
 
 		echo do_shortcode( '[wcp_quick_nav]' );
+
+		echo $after_widget;
+	}
+
+	public function form( $instance ) {
+		if ( isset( $instance[ 'title' ] ) ) {
+			$title = $instance[ 'title' ];
+		}
+		else {
+			$title = __( 'New title', 'text_domain' );
+		}
+		?>
+		<p>
+			<label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
+			<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+		</p>
+		<?php
+	}
+
+	public function update( $new_instance, $old_instance ) {
+		$instance = $old_instance;
+
+		/* Strip tags (if needed) and update the widget settings. */
+		$instance['title'] = strip_tags( $new_instance['title'] );
+
+		return $instance;
+	}
+
+
+}
+
+if( defined('WHMCS_TEMPLATE') && 'six' == WHMCS_TEMPLATE){
+    add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Sidebar_Widget" );' ) );
+}
+class WHMCS_Sidebar_Widget extends WP_Widget{
+
+    public function __construct(){
+
+        parent::__construct(
+            'whmcs-sidebar-widget',
+            'WHMCS Sidebar Widgets',
+            array( 'description' => __('Displays the sidebar widgets from WHMCS UI.',WHMCS_TEXT_DOMAIN) ) );
+
+    }
+
+    public function widget( $args, $instance ) {
+        extract( $args );
+
+        $title = apply_filters('widget_title', $instance['title'] );
+
+        echo $before_widget;
+
+        if ( $title ) echo $before_title . $title . $after_title;
+
+        echo do_shortcode( '[wcp_sidebar_widgets]' );
 
 		echo $after_widget;
 	}
