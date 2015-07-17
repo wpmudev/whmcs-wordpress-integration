@@ -42,13 +42,13 @@ exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requir
 
 define('WHMCS_INTEGRATION_VERSION','1.2.1.8');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
+define('WHMCS_TEMPLATE_OPTION','whmcs_template');
 define('WHMCS_TEXT_DOMAIN','wcp');
 define('WHMCS_INTEGRATION_URL', plugin_dir_url(__FILE__) );
 define('WHMCS_INTEGRATION_DIR', plugin_dir_path(__FILE__) );
 define('WHMCS_INTEGRATION_CACHE_URL', plugin_dir_url(__FILE__) . 'cache/');
 define('WHMCS_INTEGRATION_CACHE_DIR', plugin_dir_path(__FILE__) . 'cache/');
 define('WHMCS_INTEGRATION_COOKIE', 'WP_WHMCS');
-if(!defined('WHMCS_TEMPLATE') ) define('WHMCS_TEMPLATE', 'six');
 if(!defined('WHMCS_LOAD_BOOTSTRAP') ) define('WHMCS_LOAD_BOOTSTRAP', true);
 if(!defined('WHMCS_LOAD_STYLES') ) define('WHMCS_LOAD_STYLES', true);
 
@@ -73,7 +73,7 @@ add_filter('widget_text', 'do_shortcode'); // Allows use of shortcodes in widget
 
 $WHMCS_Wordpress_Integration = new WHMCS_Wordpress_Integration();
 
-class WHMCS_Wordpress_Integration{
+class WHMCS_Wordpress_Integration {
 
 	//WHMCS debug flag
 	public $debug = false;
@@ -160,6 +160,8 @@ class WHMCS_Wordpress_Integration{
 
 	public $doing_ajax = false;
 
+    public $template = 'six';
+
 	/**
 	* Constructor
 	*
@@ -172,11 +174,13 @@ class WHMCS_Wordpress_Integration{
 		register_activation_hook(__FILE__,array(&$this,'on_activate'));
 		register_deactivation_hook(__FILE__,array(&$this,'on_deactivate'));
 
+        add_action('after_setup_theme', array($this, 'check_whmcs_template'));
 		add_action('init', array(&$this,'on_init'));
 		add_action('wp_loaded', array(&$this,'on_wp_loaded'));
 		add_action('admin_menu', array(&$this,'on_admin_menu'));
 		add_action('wp_enqueue_scripts', array(&$this,'on_enqueue_scripts'));
 		add_action('plugins_loaded', array(&$this,'on_plugins_loaded'));
+        add_action( 'widgets_init', array( $this, 'initialize_widgets') );
 
 		//add_action('template_redirect', array(&$this,'get_remote_cookies'));
 
@@ -219,6 +223,10 @@ class WHMCS_Wordpress_Integration{
 		}
 	}
 
+    function check_whmcs_template(){
+        $this->template = get_option( WHMCS_TEMPLATE_OPTION, 'six' );
+    }
+
 	function init_properties(){
 
 		if ( defined('WHMCS_INTEGRATION_DEBUG') && WHMCS_INTEGRATION_DEBUG ) $this->debug = true;
@@ -254,7 +262,7 @@ class WHMCS_Wordpress_Integration{
 	function wp_pointer_load(){
 
 		//var_dump(get_current_screen());
-		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-' . WHMCS_TEMPLATE . '.css', array(), WHMCS_INTEGRATION_VERSION );
+		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-' . $this->template . '.css', array(), WHMCS_INTEGRATION_VERSION );
 		wp_enqueue_style('whmcs_portal');
 
 		$cookie_content = __('<p>WHMCS WordPress Integration can now sync certain cookies between WHMCS and Wordpress so that downloads of protected files from WHMCS can work correctly in WordPress.</p> <p>This requires copying the "wp-integration.php" file in this plugin to the root of the WHMCS System installation.</p>', WHMCS_TEXT_DOMAIN);
@@ -389,7 +397,7 @@ class WHMCS_Wordpress_Integration{
 
 	function on_enqueue_scripts(){
 		wp_enqueue_script('jquery');
-		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-' . WHMCS_TEMPLATE . '.css', array(), WHMCS_INTEGRATION_VERSION );
+		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-' . $this->template . '.css', array(), WHMCS_INTEGRATION_VERSION );
 		wp_enqueue_style('whmcs_portal');
 
 
@@ -694,11 +702,17 @@ class WHMCS_Wordpress_Integration{
 			}
 		}
 
-		//Downloads and Knowledgebase special handling
+        // Template autodetection.
+        if( !empty($response['body']) && strpos($response['body'], 'templates/six') !== false){
+            $this->template = 'six';
+        } else {
+            $this->template = 'portal';
+        }
+        update_option( WHMCS_TEMPLATE_OPTION, $this->template);
+
+		// Downloads special handling.
 		if( is_string($url)
-		&& ( ( strpos( strtolower($url), '/dl.php') !== false)
-		|| ( strpos( strtolower($url), '/knowledgebase.php') !== false)
-		)	){
+		&& ( ( strpos( strtolower($url), '/dl.php') !== false) )){
 			if( strpos($response['body'], '<base href=') === false) {
 				wp_redirect($url);
 				exit;
@@ -1107,7 +1121,7 @@ class WHMCS_Wordpress_Integration{
 	*
 	*/
 	function parse_whmcs(){
-        if(defined('WHMCS_TEMPLATE') && 'portal' == WHMCS_TEMPLATE){
+        if( 'portal' == $this->template ){
             $this->parse_portal_template();
         } else {
             $this->parse_six_template();
@@ -1263,6 +1277,8 @@ class WHMCS_Wordpress_Integration{
 
 		$nodes = $this->dom->getElementsByTagName('body');
 
+        $content_top = false;
+
 		//Un parsed pages
 		if(strpos( strtolower($this->whmcs_request_url), 'viewinvoice.php') !== false
 		|| strpos( strtolower($this->whmcs_request_url), 'viewemail.php') !== false
@@ -1296,11 +1312,10 @@ class WHMCS_Wordpress_Integration{
 			$root->appendChild($this->content->importNode($content, true));
 		} else {
 
-			//Has it already tried to force the portal template
-
+            //Has it already tried to force Six template
 			if( (strpos( strtolower($this->whmcs_request_url), 'systpl') === false) && !$this->doing_ajax ) {
 				//Try to force the portal template
-				$url = add_query_arg(array('systpl' => WHMCS_TEMPLATE), $this->whmcs_request_url);
+				$url = add_query_arg( array( 'systpl' => $this->template ), $this->whmcs_request_url );
 				wp_redirect( $this->redirect_url( $url ) );
 				exit;
 			} elseif( !defined('DOING_AJAX') ){
@@ -1778,7 +1793,7 @@ class WHMCS_Wordpress_Integration{
 			if( get_query_var($this->WHMCS_PORTAL) ){
 				$result = $this->load_whmcs_url(urldecode($this->whmcsportal['page']));
 			} else{
-				$result = $this->load_whmcs_url($this->settings['remote_host'] . '?' . apply_filters('whmcs_get_args', 'systpl=' . WHMCS_TEMPLATE) );
+				$result = $this->load_whmcs_url($this->settings['remote_host'] . '?' . apply_filters('whmcs_get_args', 'systpl=' . $this->template) );
 			}
 		} else {
 			$result = true;
@@ -1818,6 +1833,27 @@ class WHMCS_Wordpress_Integration{
 
     function sidebar_shortcode($attrs){
         return ( $this->have_whmcs_page() ) ? $this->sidebar_widgets->saveHTML() : '';
+    }
+
+	/**
+     * Widget initialization.
+     */
+    function initialize_widgets(){
+
+        // Register common widgets.
+        register_widget( 'WHMCS_Content_Widget' );
+        register_widget( 'WHMCS_Welcome_Widget' );
+        register_widget( 'WHMCS_Menu_Widget' );
+
+        // Register template's specific widgets.
+        // Deprecated widgets for portal template (WHMCS 5).
+        register_widget( 'WHMCS_Quick_Navigation_Widget' );
+        register_widget( 'WHMCS_Statistics_Widget' );
+        register_widget( 'WHMCS_Account_Widget' );
+
+        // Widgets for six template (WHMCS 6+).
+        register_widget( 'WHMCS_Sidebar_Widget' );
+
     }
 
 	/**
@@ -2048,7 +2084,7 @@ class WHMCS_Wordpress_Integration{
 										</td>
 									</tr>
                                     <?php
-                                    if( defined('WHMCS_TEMPLATE') && 'portal' != WHMCS_TEMPLATE):
+                                    if( 'portal' != $this->template ):
                                     ?>
 									<tr>
                                         <th><?php _e('WHMCS Sidebar Widgets:',WHMCS_TEXT_DOMAIN); ?></th>
@@ -2175,7 +2211,6 @@ class WHMCS_Wordpress_Integration{
 }
 
 
-add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Content_Widget" );' ) );
 class WHMCS_Content_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -2228,7 +2263,7 @@ class WHMCS_Content_Widget extends WP_Widget{
 
 }
 
-add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Welcome_Widget" );' ) );
+
 class WHMCS_Welcome_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -2280,7 +2315,7 @@ class WHMCS_Welcome_Widget extends WP_Widget{
 
 }
 
-add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Menu_Widget" );' ) );
+
 class WHMCS_Menu_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -2332,9 +2367,7 @@ class WHMCS_Menu_Widget extends WP_Widget{
 
 }
 
-if( defined('WHMCS_TEMPLATE') && 'portal' == WHMCS_TEMPLATE){
-add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Statistics_Widget" );' ) );
-}
+
 class WHMCS_Statistics_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -2361,6 +2394,13 @@ class WHMCS_Statistics_Widget extends WP_Widget{
 	}
 
 	public function form( $instance ) {
+        global $WHMCS_Wordpress_Integration;
+        if( !empty($WHMCS_Wordpress_Integration->template) && 'portal' != $WHMCS_Wordpress_Integration->template ){
+            ?>
+            <p class="error-message"><?php _e('This widget is only compatible with Portal template, which is deprecated since WHMCS v6.0.'); ?></p>
+            <?php
+        }
+
 		if ( isset( $instance[ 'title' ] ) ) {
 			$title = $instance[ 'title' ];
 		}
@@ -2386,9 +2426,7 @@ class WHMCS_Statistics_Widget extends WP_Widget{
 
 }
 
-if( defined('WHMCS_TEMPLATE') && 'portal' == WHMCS_TEMPLATE){
-add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Account_Widget" );' ) );
-}
+
 class WHMCS_Account_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -2414,6 +2452,13 @@ class WHMCS_Account_Widget extends WP_Widget{
 	}
 
 	public function form( $instance ) {
+        global $WHMCS_Wordpress_Integration;
+        if( !empty($WHMCS_Wordpress_Integration->template) && 'portal' != $WHMCS_Wordpress_Integration->template ){
+            ?>
+            <p class="error-message"><?php _e('This widget is only compatible with Portal template, which is deprecated since WHMCS v6.0.'); ?></p>
+        <?php
+        }
+
 		if ( isset( $instance[ 'title' ] ) ) {
 			$title = $instance[ 'title' ];
 		}
@@ -2439,9 +2484,6 @@ class WHMCS_Account_Widget extends WP_Widget{
 
 }
 
-if( defined('WHMCS_TEMPLATE') && 'portal' == WHMCS_TEMPLATE){
-add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Quick_Navigation_Widget" );' ) );
-}
 class WHMCS_Quick_Navigation_Widget extends WP_Widget{
 
 	public function __construct(){
@@ -2468,6 +2510,13 @@ class WHMCS_Quick_Navigation_Widget extends WP_Widget{
 	}
 
 	public function form( $instance ) {
+        global $WHMCS_Wordpress_Integration;
+        if( !empty($WHMCS_Wordpress_Integration->template) && 'portal' != $WHMCS_Wordpress_Integration->template ){
+            ?>
+            <p class="error-message"><?php _e('This widget is only compatible with Portal template, which is deprecated since WHMCS v6.0.'); ?></p>
+        <?php
+        }
+
 		if ( isset( $instance[ 'title' ] ) ) {
 			$title = $instance[ 'title' ];
 		}
@@ -2494,9 +2543,7 @@ class WHMCS_Quick_Navigation_Widget extends WP_Widget{
 
 }
 
-if( defined('WHMCS_TEMPLATE') && 'six' == WHMCS_TEMPLATE){
-    add_action( 'widgets_init', create_function( '', 'register_widget( "WHMCS_Sidebar_Widget" );' ) );
-}
+
 class WHMCS_Sidebar_Widget extends WP_Widget{
 
     public function __construct(){
@@ -2523,6 +2570,13 @@ class WHMCS_Sidebar_Widget extends WP_Widget{
 	}
 
 	public function form( $instance ) {
+        global $WHMCS_Wordpress_Integration;
+        if( !empty($WHMCS_Wordpress_Integration->template) && 'portal' == $WHMCS_Wordpress_Integration->template ){
+            ?>
+            <p class="error-message"><?php _e('Your WHMCS install is using "Portal" template. This widget is only available for WHMCS 6.0 using "Six" template.'); ?></p>
+        <?php
+        }
+
 		if ( isset( $instance[ 'title' ] ) ) {
 			$title = $instance[ 'title' ];
 		}
@@ -2546,9 +2600,7 @@ class WHMCS_Sidebar_Widget extends WP_Widget{
 		return $instance;
 	}
 
-
 }
-
 
 /**
 * array_replace() substitute for PHP < 5.3
