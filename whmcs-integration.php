@@ -1808,31 +1808,31 @@ class WHMCS_Wordpress_Integration {
 	*/
 
 	function content_shortcode($attrs){
-		return ( $this->have_whmcs_page() ) ? $this->content->saveHTML() : '';
+        return ( $this->have_whmcs_page() && $this->content ) ? $this->content->saveHTML() : '';
 	}
 
 	function menu_shortcode($attrs){
-		return ( $this->have_whmcs_page() ) ? $this->menu->saveHTML() : '';
+        return ( $this->have_whmcs_page() && $this->menu ) ? $this->menu->saveHTML() : '';
 	}
 
 	function quick_nav_shortcode($attrs){
-		return ( $this->have_whmcs_page() ) ? $this->quick_nav->saveHTML() : '';
+        return ( $this->have_whmcs_page() && $this->quick_nav ) ? $this->quick_nav->saveHTML() : '';
 	}
 
 	function account_shortcode($attrs){
-		return ( $this->have_whmcs_page() ) ? $this->account->saveHTML() : '';
+        return ( $this->have_whmcs_page() && $this->account ) ? $this->account->saveHTML() : '';
 	}
 
 	function statistics_shortcode($attrs){
-		return ( $this->have_whmcs_page() ) ? $this->statistics->saveHTML() : '';
+        return ( $this->have_whmcs_page() && $this->statistics ) ? $this->statistics->saveHTML() : '';
 	}
 
 	function welcome_shortcode($attrs){
-		return ( $this->have_whmcs_page() ) ? $this->welcome->saveHTML() : '';
+        return ( $this->have_whmcs_page() && $this->welcome ) ? $this->welcome->saveHTML() : '';
 	}
 
     function sidebar_shortcode($attrs){
-        return ( $this->have_whmcs_page() ) ? $this->sidebar_widgets->saveHTML() : '';
+        return ( $this->have_whmcs_page() && $this->sidebar_widgets ) ? $this->sidebar_widgets->saveHTML() : '';
     }
 
 	/**
