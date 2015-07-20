@@ -224,7 +224,11 @@ class WHMCS_Wordpress_Integration {
 	}
 
     function check_whmcs_template(){
+        if( $this->settings['template'] == 'auto'){
         $this->template = get_option( WHMCS_TEMPLATE_OPTION, 'six' );
+        } else {
+            $this->template = $this->settings['template'];
+    }
     }
 
 	function init_properties(){
@@ -242,6 +246,7 @@ class WHMCS_Wordpress_Integration {
 		@$this->content_page_id = $this->settings['content_page'] = (is_numeric($this->settings['content_page'])) ?  intval($this->settings['content_page']) : 0;
 		$this->settings['encode_url'] = empty($this->settings['encode_url']) ?  $this->settings['remote_host'] : $this->settings['encode_url'];
 		$this->settings['http_sig'] = empty($this->settings['http_sig']) ? 0 : $this->settings['http_sig'];
+        $this->settings['template'] = empty($this->settings['template']) ? 'auto' : $this->settings['template'];
 
 		$this->endpoint = $this->settings['endpoint'] = empty($this->settings['endpoint']) ? 'whmcsportal' : $this->settings['endpoint'];
 
@@ -702,13 +707,18 @@ class WHMCS_Wordpress_Integration {
 			}
 		}
 
-        // Template autodetection.
-        if( !empty($response['body']) && strpos($response['body'], 'templates/six') !== false){
-            $this->template = 'six';
-        } else {
-            $this->template = 'portal';
+
+        if( $this->settings['template'] == 'auto'){
+            // Template autodetection.
+            // This is the earlier stage were we can detect it because we depend on the response object.
+            if( !empty($response['body']) && strpos($response['body'], 'templates/six') !== false){
+                $this->template = 'six';
+            } else {
+                $this->template = 'portal';
+            }
+            update_option( WHMCS_TEMPLATE_OPTION, $this->template);
         }
-        update_option( WHMCS_TEMPLATE_OPTION, $this->template);
+
 
 		// Downloads special handling.
 		if( is_string($url)
@@ -2001,6 +2011,27 @@ class WHMCS_Wordpress_Integration {
 											<input type="text" id="wcp-endpoint" name="wcp_settings[endpoint]" size="40" value="<?php esc_attr_e( $this->settings['endpoint']); ?>" />
 											<br /><span class="description"><?php _e('The endpoint slug to use to signal reference to a WHMCS page',WHMCS_TEXT_DOMAIN); ?>
 											<br /><?php _e('Permalinks will be of the form <br />http://YOUR.DOMAIN/DEFAULT_PAGE/ENDPOINT/clientarea.php',WHMCS_TEXT_DOMAIN); ?></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        <?php _e('WHMCS Template:',WHMCS_TEXT_DOMAIN); ?>
+                                    </th>
+                                    <td>
+                                        <select name="wcp_settings[template]">
+                                            <?php
+                                            $supported_templates = array(
+                                                'auto' => 'Auto Detect',
+                                                'six' => 'Six',
+                                                'portal' => 'Portal'
+                                            );
+                                            foreach($supported_templates as $template_key => $template_name){
+                                                $option = '<option value="' . $template_key . '"' . selected($template_key, $this->settings['template'], false) . ' >' . $template_name . "</option>\n";
+                                                echo $option;
+                                            }
+                                            ?>
+                                        </select>
+                                        <br /><span class="description"><?php _e('This is the template that is being used in your WHMCS install.', WHMCS_TEXT_DOMAIN); ?>  </span>
 										</td>
 									</tr>
 									<tr>
