@@ -1256,7 +1256,10 @@ class WHMCS_Wordpress_Integration {
             $src = $script->getAttribute('src');
 
             if(empty($src) ) { //Inline scripts
-                $script->nodeValue = 'jQuery(document).ready(function($){ ' . $script->nodeValue . '});';
+                // Exclude scripts where selectors are not used.
+                if( strpos( $script->nodeValue, 'jQuery(' )){
+                    $script->nodeValue = 'jQuery(document).ready(function($){ ' . $script->nodeValue . '});';
+                }
                 $root->appendChild($this->content->importNode($script, true));
             }
 
