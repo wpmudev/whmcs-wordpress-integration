@@ -1293,6 +1293,7 @@ class WHMCS_Wordpress_Integration {
         $content_top = false;
         $home_shortcuts = false;
         $is_home_page = false;
+        $whmcs_error = false;
 
 		//Un parsed pages
 		if(strpos( strtolower($this->whmcs_request_url), 'viewinvoice.php') !== false
@@ -1357,6 +1358,7 @@ class WHMCS_Wordpress_Integration {
 				wp_redirect( $this->redirect_url( $url ) );
 				exit;
 			} elseif( !defined('DOING_AJAX') ){
+                $whmcs_error = $xpath->query('//div[@class="genericError"]')->item(0);
 				// Doesn't look like a Portal page return an error in all shortcodes
 				$error = $this->content->createElement('div');
 				$error->setAttribute('class', 'whmcs_error');
@@ -1364,7 +1366,11 @@ class WHMCS_Wordpress_Integration {
 				$error_text = new DOMText( sprintf( __('Sorry this doesn\'t look like a WHMCS site at [%1$s]',WHMCS_TEXT_DOMAIN), $this->remote_host)
 				. __('  Make sure your WHMCS Integration settings are pointing to the correct URL and that the WHMCS site is set for the Portal template in Setup | General.',WHMCS_TEXT_DOMAIN));
 
+                if( $whmcs_error ){
+                    $error->appendChild($this->content->importNode($whmcs_error, true));
+                } else {
 				$error->appendChild($error_text);
+                }
 
 				$this->content->appendChild($error);
 
