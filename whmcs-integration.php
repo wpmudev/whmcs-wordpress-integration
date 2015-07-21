@@ -1310,8 +1310,11 @@ class WHMCS_Wordpress_Integration {
                 $home_shortcuts = $xpath->query('//div[@class="home-shortcuts"]/div[@class="container"]')->item(0);
             } else {
                 $is_home_page = false;
-                if(strpos( strtolower($this->whmcs_request_url), 'domainchecker.php') === false ){
-            $content_top = $xpath->query('//section[@id="main-body"]/div[@class="row"]/div[1]')->item(0);
+                if(strpos( strtolower($this->whmcs_request_url), 'domainchecker.php') === false
+                    && strpos( strtolower($this->whmcs_request_url), 'submitticket.php') === false
+                    && strpos( strtolower($this->whmcs_request_url), 'contact.php') === false
+                ){
+                    $content_top = $xpath->query('//section[@id="main-body"]/div[@class="row" and not(div[contains(@class, "main-content")])]/div[1]')->item(0);
                 }
 
             }
