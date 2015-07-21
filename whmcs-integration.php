@@ -1291,6 +1291,8 @@ class WHMCS_Wordpress_Integration {
 		$nodes = $this->dom->getElementsByTagName('body');
 
         $content_top = false;
+        $home_shortcuts = false;
+        $is_home_page = false;
 
 		//Un parsed pages
 		if(strpos( strtolower($this->whmcs_request_url), 'viewinvoice.php') !== false
@@ -1300,18 +1302,41 @@ class WHMCS_Wordpress_Integration {
 		){
 			$content = $nodes->item(0);
 		} else {
+            $home_pattern = preg_quote(untrailingslashit( $this->remote_host ), '/') . '(\/\?|\?|\/$)';
+            if(preg_match( '/' . $home_pattern . '/', $this->whmcs_request_url)){
+                $is_home_page = true;
+                $content_top = $xpath->query('//section[@id="home-banner"]/div[1]')->item(0);
+                $home_shortcuts = $xpath->query('//div[@class="home-shortcuts"]/div[@class="container"]')->item(0);
+            } else {
+                $is_home_page = false;
+                if(strpos( strtolower($this->whmcs_request_url), 'domainchecker.php') === false ){
             $content_top = $xpath->query('//section[@id="main-body"]/div[@class="row"]/div[1]')->item(0);
+                }
+
+            }
 
 			$content = $xpath->query('//div[contains(@class, "main-content")]')->item(0);
 
 		}
 
         if($content_top){
+            if($is_home_page){
+                $content_top_class = str_replace('container', '', $content_top->getAttribute('class'));
+                $content_top->removeAttribute('class');
+                $content_top->setAttribute('class', $content_top_class);
+                $content_top->setAttribute('id', 'home-banner');
+            } else {
             $content_top_class = str_replace('col-md-9', 'col-md-12', $content_top->getAttribute('class'));
             $content_top->removeAttribute('class');
             $content_top->setAttribute('class', $content_top_class);
+            }
 
             $root->appendChild($this->content->importNode($content_top, true));
+        }
+
+        if($home_shortcuts){
+            $home_shortcuts->setAttribute('class', 'home-shortcuts');
+            $root->appendChild($this->content->importNode($home_shortcuts, true));
         }
 
 		if($content){
