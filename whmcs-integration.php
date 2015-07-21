@@ -340,7 +340,15 @@ class WHMCS_Wordpress_Integration {
 		);
 
 		flush_rewrite_rules();
-	}
+
+        // Clear cached files immediately.
+        $cached_files = glob( WHMCS_INTEGRATION_CACHE_DIR . '*.*' );
+        foreach($cached_files as $fname){
+            if(is_file($fname) &&  (basename($fname) != 'index.php')){ // Exclude blocking index.php.
+                unlink($fname);
+	        }
+        }
+    }
 
 	/**
 	* on-deactivate - called on deactivating the plugin. Performs any cleanup necessary
