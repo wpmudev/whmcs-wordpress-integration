@@ -956,7 +956,7 @@ class WHMCS_Wordpress_Integration {
 		$this->whmcs_url = str_replace('http://','whmcs://', $this->whmcs_url);
 		// Or Secure version
 		$this->whmcs_url = str_replace('https://','whmcss://', $this->whmcs_url);
-		$result = $match[1] . $ajax_url . "?action=whmcs_ajax&_ajax_nonce=$nonce&whmcsportal[page]=" . urlencode($this->whmcs_url);
+        $result = htmlspecialchars( $match[1] . $ajax_url . "?action=whmcs_ajax&_ajax_nonce=$nonce&whmcsportal[page]=") . urlencode($this->whmcs_url);
 
 		return $result;
 	}
@@ -1253,10 +1253,11 @@ class WHMCS_Wordpress_Integration {
 			if(strpos( strtolower($src), '/assets/js/') !== false) {
                 if(strpos( strtolower($src), 'jquery.min.js') !== false){
                     wp_enqueue_script('jquery');
+                } else {
+				    wp_enqueue_script($handle, $src);
                 }
-				wp_enqueue_script($handle, $src);
-			}
-		}
+            }
+        }
 
         //Collect body scripts
         $this->scripts = $xpath->query('//body//script');
@@ -1264,10 +1265,21 @@ class WHMCS_Wordpress_Integration {
             $src = $script->getAttribute('src');
 
             if(empty($src) ) { //Inline scripts
-                // Exclude scripts where selectors are not used.
-                if( strpos( $script->nodeValue, 'jQuery(' )){
-                    $script->nodeValue = 'jQuery(document).ready(function($){ ' . $script->nodeValue . '});';
+                // Wrap script blocks into .ready() event handler.
+                if( strpos( $script->nodeValue, 'jQuery(' )){// Exclude scripts where selectors are not used.
+                    $temp_script = 'jQuery(document).ready(function($){ ' . $script->nodeValue . '});';
+                    // Make sure that functions are declared in global scope.
+                    if( preg_match_all('`function\s(\w+)\(`',$script->nodeValue, $matches) !== false){
+                        if( !empty($matches[0]) && !empty($matches[1]) ){
+                            foreach($matches[0] as $key => $match){
+                                $temp_script = str_replace( $match, 'window.' . $matches[1][$key] . ' = function(', $temp_script);
+                            }
+                        }
+                    }
+
+                    $script->nodeValue = $temp_script;
                 }
+
                 $root->appendChild($this->content->importNode($script, true));
             }
 
