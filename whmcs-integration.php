@@ -1334,7 +1334,7 @@ class WHMCS_Wordpress_Integration {
                     && strpos( strtolower($this->whmcs_request_url), 'submitticket.php') === false
                     && strpos( strtolower($this->whmcs_request_url), 'contact.php') === false
                 ){
-                    $content_top = $xpath->query('//section[@id="main-body"]/div[@class="row" and not(div[contains(@class, "main-content")])]/div[1]')->item(0);
+                    $content_top = $xpath->query('//section[@id="main-body"]/div[@class="row"]/div[not(contains(@class, "main-content"))][1]')->item(0);
                 }
 
             }
