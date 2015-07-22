@@ -956,7 +956,7 @@ class WHMCS_Wordpress_Integration {
 		$this->whmcs_url = str_replace('http://','whmcs://', $this->whmcs_url);
 		// Or Secure version
 		$this->whmcs_url = str_replace('https://','whmcss://', $this->whmcs_url);
-        $result = htmlspecialchars( $match[1] . $ajax_url . "?action=whmcs_ajax&_ajax_nonce=$nonce&whmcsportal[page]=") . urlencode($this->whmcs_url);
+        $result = $match[1] . $ajax_url . "?action=whmcs_ajax&_ajax_nonce=$nonce&whmcsportal[page]=" . urlencode($this->whmcs_url);
 
 		return $result;
 	}
@@ -1247,7 +1247,7 @@ class WHMCS_Wordpress_Integration {
 			if( (strpos( strtolower($src), '/templates/') !== false) )
 			{
 				$script->setAttribute('src', $this->cache_javascript($src));
-				wp_enqueue_script($handle, $src);
+                wp_enqueue_script($handle, $this->cache_javascript($src));
 			}
 
 			if(strpos( strtolower($src), '/assets/js/') !== false) {
@@ -1290,7 +1290,7 @@ class WHMCS_Wordpress_Integration {
 
                 if( (strpos( strtolower($src), 'templates/six/js/whmcs.js') !== false) )
                 {
-                    wp_enqueue_script($handle, $src, array('assets-js-bootstrap'));
+                    wp_enqueue_script($handle, $this->cache_javascript($src), array('assets-js-bootstrap'));
                 } else {
                     wp_enqueue_script($handle, $src);
                 }
