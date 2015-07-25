@@ -928,14 +928,16 @@ class WHMCS_Wordpress_Integration {
 		//Fix Twitter jQuery;
 		$base = $this->whmcs_base;
 
-		//for double quotes
-		$text = preg_replace_callback('`(jQuery.post\(")([\w\d-_]+.php)`u', array($this, 'ajax_loop') , $text);
-		//for single quotes
-		$text = preg_replace_callback("`(jQuery.post\(')([\w\d-_]+.php)`u", array($this, 'ajax_loop') , $text);
+        // Change relative urls to ajax hanler.
+        $text = preg_replace_callback("`(jQuery.post\(\s*[\"|'])([\w\d-_]+.php)`u", array($this, 'ajax_loop') , $text);
 
 		//For ajaxcart jqueryfloat.js
 		$text = str_replace("this.currentX = offset.left;", "this.currentX = this.jqObj.position().left;", $text );
 		$text = str_replace("this.currentY = offset.top;", "this.currentY = this.jqObj.position().top;", $text );
+
+        //For domainchecker.php form.
+        $text = str_replace("jQuery('#frmDomainChecker').submit(", "jQuery( document ).on('submit', '#frmDomainChecker',", $text);
+        $text = str_replace('includes/verifyimage.php?timestamp=" + new Date().getTime()', $this->get_captcha_url() . '"', $text);// TODO: create async endpoint to proxy/cache captcha images.
 
 		return $text;
 	}
@@ -978,9 +980,12 @@ class WHMCS_Wordpress_Integration {
 		$result = $this->load_whmcs_url(urldecode($this->whmcsportal['page']));
 
 		if($result) {
-			//WHMCS doesn't use the correct mime types and sends both text/plain and text/html as text/html in ajax
-			if(strip_tags($this->response['body']) == $this->response['body']){
+            // WHMCS doesn't use the correct mime types in version 5.
+            if( null !== json_decode($this->response['body'])){
+                header('Content-Type: application/json');// Force correct mime type.
 				echo $this->response['body'];
+            } else if(strip_tags($this->response['body']) == $this->response['body']){
+                echo $this->response['body'];
 			} else {
 				echo $this->dom->saveHTML();
 			}
@@ -1292,7 +1297,7 @@ class WHMCS_Wordpress_Integration {
                 {
                     wp_enqueue_script($handle, $this->cache_javascript($src), array('assets-js-bootstrap'));
                 } else {
-                    wp_enqueue_script($handle, $src);
+                    wp_enqueue_script($handle, $this->cache_javascript($src));
                 }
 
             }
@@ -2285,7 +2290,7 @@ class WHMCS_Wordpress_Integration {
 		@unlink(WHMCS_INTEGRATION_CACHE_DIR . $fname);
 
 		$url = $this->remote_host . 'includes/verifyimage.php?ver=' . uniqid() ;
-		$response = $this->redirect_request(	$url);
+        $response = $this->redirect_request( $url );
 
 		if(is_wp_error($response) ){
 			return '';
