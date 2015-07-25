@@ -1155,6 +1155,27 @@ class WHMCS_Wordpress_Integration {
 			$text = $this->redirect_javascript($text);
 			file_put_contents($cache_file, $text);
 			return $cache_url;
+        } else { // file_get_contents fails under certain server configurations. Let's try via curl.
+            $ch = curl_init();
+
+            $header=array(
+                'Accept:*/*'
+            );
+
+            curl_setopt($ch,CURLOPT_URL,$url);
+            curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);
+            curl_setopt($ch,CURLOPT_CONNECTTIMEOUT,0);
+            curl_setopt( $ch, CURLOPT_COOKIESESSION, true );
+            curl_setopt($ch,CURLOPT_HTTPHEADER,$header);
+            $result=curl_exec($ch);
+
+            curl_close($ch);
+            if($result){
+                $text = $this->redirect_javascript($result);
+                file_put_contents($cache_file, $text);
+                return $cache_url;
+            }
+
 		}
 		return $url.'?ver=2';
 	}
