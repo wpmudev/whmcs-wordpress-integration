@@ -1193,7 +1193,7 @@ class WHMCS_Wordpress_Integration {
 			$hr = $href->textContent;
 
 			//take care of special cases
-            if ( $hr == '#' || (false !== strpos($hr, 'javascript:')) || ( false !== preg_match('`^#\w+`', $hr))) continue;
+            if ( $hr == '#' || (false !== strpos($hr, 'javascript:')) || ( false != preg_match('`^#\w+`', $hr))) continue;
 
 			$href->parentNode->setAttribute('href', $this->redirect_url($hr));
 		}
