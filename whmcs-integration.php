@@ -1050,7 +1050,7 @@ class WHMCS_Wordpress_Integration {
 
 
 		// If no whmcs data then not for us
-		if( empty($wp->query_vars[$this->WHMCS_PORTAL]) ) return;
+		if( !isset($wp->query_vars[$this->WHMCS_PORTAL]) ) return;
 
 
 		if($this->debug) $this->debug_print($wp);
