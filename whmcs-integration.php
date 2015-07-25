@@ -856,8 +856,6 @@ class WHMCS_Wordpress_Integration {
 	*/
 	function redirect_javascript($text){
 
-		//$text = str_replace( pack("CCC",0xef,0xbb,0xbf), "", $text);
-
 		//javascript location changes
 		if( preg_match_all('`window\.location\s*\=\s*\'([^\']*)\'`',$text, $matches) !== false){
 
