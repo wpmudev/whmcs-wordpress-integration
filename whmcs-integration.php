@@ -941,6 +941,28 @@ class WHMCS_Wordpress_Integration {
 	}
 
 	/**
+     * redirect_json - Overrides any location or css url in JSON response to the WHMCS Integration host.
+     * @ $text string the string to be parsed
+     *
+     * @ returns the modified string
+     */
+    function redirect_json($text) {
+        // hrefs
+        $text = preg_replace_callback(
+            '`(href=[\\\][\'|"])(\w+\.php)\??`',
+            array( $this, 'json_href_replace_callback' ),
+            $text
+        );
+
+        return $text;
+    }
+
+    function json_href_replace_callback( $matches ){
+        $integration_url = $matches[1] . $this->redirect_url($matches[2]);
+        return $integration_url;
+    }
+
+    /**
 	* Helper function for preg_replace_callback above
 	*
 	*/
@@ -981,7 +1003,7 @@ class WHMCS_Wordpress_Integration {
             // WHMCS doesn't use the correct mime types in version 5.
             if( null !== json_decode($this->response['body'])){
                 header('Content-Type: application/json');// Force correct mime type.
-				echo $this->response['body'];
+                echo $this->redirect_json($this->response['body']);
             } else if(strip_tags($this->response['body']) == $this->response['body']){
                 echo $this->response['body'];
 			} else {
