@@ -576,7 +576,7 @@ class WHMCS_Wordpress_Integration {
 		}
 	}
 
-	function redirect_request($url, $post_fields = ''){
+    function redirect_request($url, $post_fields = '', $isCaptcha = false){
 
         do_action('whmcs_pre_redirect_request', $url, $post_fields);
 
@@ -585,7 +585,9 @@ class WHMCS_Wordpress_Integration {
 		add_filter('http_curl_headers', array(&$this,'filter_headers'));
 		add_filter('http_api_redirect', array(&$this,'filter_redirect'));
 
+        if( !$isCaptcha ){
 		$this->whmcs_request_url = $url;
+        }
 
 		if( isset( $_SERVER['CONTENT_TYPE'] ) ){
 			$this->multipart = strpos($_SERVER['CONTENT_TYPE'],'multipart/form-data');
@@ -2331,7 +2333,7 @@ class WHMCS_Wordpress_Integration {
 		@unlink(WHMCS_INTEGRATION_CACHE_DIR . $fname);
 
 		$url = $this->remote_host . 'includes/verifyimage.php?ver=' . uniqid() ;
-        $response = $this->redirect_request( $url );
+        $response = $this->redirect_request( $url, '', true );
 
 		if(is_wp_error($response) ){
 			return '';
