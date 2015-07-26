@@ -178,7 +178,7 @@ class WHMCS_Wordpress_Integration {
 		add_action('init', array(&$this,'on_init'));
 		add_action('wp_loaded', array(&$this,'on_wp_loaded'));
 		add_action('admin_menu', array(&$this,'on_admin_menu'));
-		add_action('wp_enqueue_scripts', array(&$this,'on_enqueue_scripts'));
+        add_action('wp_enqueue_scripts', array(&$this,'on_enqueue_scripts'), 20);
 		add_action('plugins_loaded', array(&$this,'on_plugins_loaded'));
         add_action( 'widgets_init', array( $this, 'initialize_widgets') );
 
@@ -422,7 +422,19 @@ class WHMCS_Wordpress_Integration {
 			//Use a short expiration rather than delete in case of memcaching.
 			set_transient( $this->pending_cookies, array(), 1 );
 		}
-	}
+        // Special tweeak for twentyfifteen theme.
+        if( 'Twenty Fifteen' == wp_get_theme()->get( 'Name' )){
+
+            wp_register_style('whmcs_six_tweentyfifteen', plugin_dir_url(__FILE__) . 'css/whmcs-' . $this->template . '-twentyfifteen.css', array(), WHMCS_INTEGRATION_VERSION );
+            wp_enqueue_style('whmcs_six_tweentyfifteen');
+
+            $handle = 'twentyfifteen-script';
+            $list = 'enqueued';
+            if (wp_script_is( $handle, $list )) {
+                wp_dequeue_script( 'twentyfifteen-script' );
+            }
+        }
+    }
 
 	/**
 	* get_remote_cookies  Reads and return s the cookies being sent to WHMCS

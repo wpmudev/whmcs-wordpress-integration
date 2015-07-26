@@ -1,0 +1,23 @@
+/**
+Twenty Fifteen tweak.
+*/
+.dropdown-toggle {
+    content: "";
+    height: inherit;
+    text-transform: lowercase; /* Stop screen readers to read the text as capital letters */
+    top: 0px;
+    right: 0;
+    width: auto;
+}
+
+.dropdown-toggle:after {
+    content: "";
+    width: 0px;
+}
+
+.dropdown-toggle.toggle-on:after {
+    content: "";
+}
+.nav.navbar-nav li {
+    font-size: 90%;
+}
