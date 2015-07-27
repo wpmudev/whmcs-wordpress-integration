@@ -2,7 +2,7 @@ Plugin Name: WHMCS Wordpress Integration
 Author: Arnold Bailey
 
 == Change Log ==
-==1.3.0==
+==1.3==
 - New: Added support for WHMCS 6 using default template.
 
 ==1.2.1.8==
