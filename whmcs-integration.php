@@ -496,16 +496,39 @@ class WHMCS_Wordpress_Integration {
 	}
 
 	/**
-	* Makes a minor patch to WP_Curl turning off errors when a 301, 302 redirect occurs
-	* A redirect is not an error and it messes up catching page changes at WHMCS
-	* Also inserts a filter so that headers can be filtered in curl.
-	* And a filter to turn off WP_Http's internal redirect when safe_mode or open_basedir are set in PHP.
-	*/
+	 * Makes a minor patch to WP_Curl turning off errors when a 301, 302 redirect occurs
+	 * A redirect is not an error and it messes up catching page changes at WHMCS
+	 * Also inserts a filter so that headers can be filtered in curl.
+	 * And a filter to turn off WP_Http's internal redirect when safe_mode or open_basedir are set in PHP.
+	 */
 	function http_patch($hard = false){
+		global $wp_version;
 
+		$result = false;
 		//Check the file stats for an updated file
 		$this->settings = get_option(WHMCS_SETTINGS_NAME);
-		$fname = ABSPATH . WPINC . '/class-http.php';
+
+		if ( version_compare( $wp_version, '4.4', '>=') ) {
+			$http_transport_files = array(
+				ABSPATH . WPINC . '/class-wp-http-curl.php',
+				ABSPATH . WPINC . '/class-wp-http-streams.php'
+			);
+
+			$http_transport_files = apply_filters( 'whmcs_http_transport_files', $http_transport_files );// Give other plugins the chance to include custom transport files.
+
+			foreach( $http_transport_files as $key => $fname ){
+				$result = $this->http_patch_file($fname, $hard);
+			}
+
+		} else {
+			$fname = ABSPATH . WPINC . '/class-http.php';
+			$result = $this->http_patch_file($fname, $hard);
+		}
+
+		return $result;
+	}
+
+	function http_patch_file( $fname, $hard = false ){
 		clearstatcache();
 		$stat = stat($fname);
 		$result = false;
@@ -521,31 +544,31 @@ class WHMCS_Wordpress_Integration {
 				//** Header filter necessary to support multipart forms. If not patched genereates a 413: Request Entity Too Large error
 				//Header filter for 3.3x
 				$fs = preg_replace('#(true\s*\)\s*;\s*)(if\s*\(\s*\!\s*empty\s*\(\s*\$r\[\'headers\'\])#',
-				"$1\$r['headers'] = apply_filters('http_curl_headers', \$r['headers']); //Added by WHMCS Integration\n\n\t\t$2", $fs); //Add header filter
+					"$1\$r['headers'] = apply_filters('http_curl_headers', \$r['headers']); //Added by WHMCS Integration\n\n\t\t$2", $fs); //Add header filter
 
 				//Header filter for 3.4x
 				$fs = preg_replace('#(\}\s*)(if\s*\(\s*\!\s*empty\s*\(\s*\$r\[\'headers\'\])#',
-				"$1\$r['headers'] = apply_filters('http_curl_headers', \$r['headers']); //Added by WHMCS Integration\n\n\t\t$2", $fs); //Add header filter
+					"$1\$r['headers'] = apply_filters('http_curl_headers', \$r['headers']); //Added by WHMCS Integration\n\n\t\t$2", $fs); //Add header filter
 
 				//obsolete after WPv3.4
 				$fs = preg_replace('#(>\s*0\s*\)\s*\{\s*)(return\s*\$this->request\(\s*\$theHeaders)#',
-				"$1if(apply_filters('http_api_redirect', true)) //Added by WHMCS Integration\n\t\t\t\t$2", $fs); //Add redirect filter
+					"$1if(apply_filters('http_api_redirect', true)) //Added by WHMCS Integration\n\t\t\t\t$2", $fs); //Add redirect filter
 
 				//For WPv3.4
 				$fs = preg_replace('#(>\s*0\s*\)\s*\{\s*)(return\s*\$this->request\(\s*WP_HTTP\:\:make_absolute_url\(\s*\$theHeaders)#',
-				"$1if(apply_filters('http_api_redirect', true)) //Added by WHMCS Integration\n\t\t\t\t$2", $fs); //Add redirect filter
+					"$1if(apply_filters('http_api_redirect', true)) //Added by WHMCS Integration\n\t\t\t\t$2", $fs); //Add redirect filter
 
 				//For WPv3.5.2
 				$fs = preg_replace('#(>\s*0\s*\)\s*\{\s*)(return\s*\wp_remote_request\(\s*WP_HTTP\:\:make_absolute_url\(\s*\$theHeaders)#',
-				"$1if(apply_filters('http_api_redirect', true)) //Added by WHMCS Integration\n\t\t\t\t$2", $fs); //Add redirect filter
+					"$1if(apply_filters('http_api_redirect', true)) //Added by WHMCS Integration\n\t\t\t\t$2", $fs); //Add redirect filter
 
 				//For WPv3.7.1
 				$fs = preg_replace('#(\/\/\s*Handle\s*redirects\s*\n)(\s*if.*\n.*;\n)#',
-				"$1\t\tif( apply_filters('http_api_redirect', true)){ //Added by WHMCS Integration\n\t$2\t\t}\n", $fs);
+					"$1\t\tif( apply_filters('http_api_redirect', true)){ //Added by WHMCS Integration\n\t$2\t\t}\n", $fs);
 
-                //For WPv4.0
-                $fs = preg_replace('#(\/\/\s*Handle\s*redirects.\s*\n)(\s*if.*\n.*;\n)#',
-                "$1\t\tif( apply_filters('http_api_redirect', true)){ //Added by WHMCS Integration\n\t$2\t\t}\n", $fs);
+				//For WPv4.0
+				$fs = preg_replace('#(\/\/\s*Handle\s*redirects.\s*\n)(\s*if.*\n.*;\n)#',
+					"$1\t\tif( apply_filters('http_api_redirect', true)){ //Added by WHMCS Integration\n\t$2\t\t}\n", $fs);
 
 				if($fs){
 					if(! is_writable($fname) ) chmod($fname, 0666);
@@ -557,8 +580,8 @@ class WHMCS_Wordpress_Integration {
 				}
 			}
 
+			return $result;
 		}
-		return $result;
 	}
 
 	function filter_headers($headers){
