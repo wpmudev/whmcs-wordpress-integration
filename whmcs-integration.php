@@ -245,7 +245,7 @@ class WHMCS_Wordpress_Integration {
 
 		@$this->content_page_id = $this->settings['content_page'] = (is_numeric($this->settings['content_page'])) ?  intval($this->settings['content_page']) : 0;
 		$this->settings['encode_url'] = empty($this->settings['encode_url']) ?  $this->settings['remote_host'] : $this->settings['encode_url'];
-		$this->settings['http_sig'] = empty($this->settings['http_sig']) ? 0 : $this->settings['http_sig'];
+		$this->settings['http_sig'] = empty($this->settings['http_sig']) || !is_array($this->settings['http_sig']) ? array() : $this->settings['http_sig'];
         $this->settings['template'] = empty($this->settings['template']) ? 'auto' : $this->settings['template'];
 
 		$this->endpoint = $this->settings['endpoint'] = empty($this->settings['endpoint']) ? 'whmcsportal' : $this->settings['endpoint'];
@@ -532,8 +532,9 @@ class WHMCS_Wordpress_Integration {
 		clearstatcache();
 		$stat = stat($fname);
 		$result = false;
+
 		//if different update the file and save the new signature
-		if($this->settings['http_sig'] != $stat['size'].$stat['mtime'].$stat['ctime'] || $hard){
+		if($this->settings['http_sig'][$fname] != $stat['size'].$stat['mtime'].$stat['ctime'] || $hard){
 			$fs = file_get_contents($fname);
 			if($fs !== false){
 
@@ -575,7 +576,7 @@ class WHMCS_Wordpress_Integration {
 					$result = @file_put_contents($fname, $fs);
 					clearstatcache();
 					$stat = stat($fname);
-					$this->settings['http_sig'] = $stat['size'].$stat['mtime'].$stat['ctime'];
+					$this->settings['http_sig'][$fname] = $stat['size'].$stat['mtime'].$stat['ctime'];
 					update_option(WHMCS_SETTINGS_NAME, $this->settings);
 				}
 			}
