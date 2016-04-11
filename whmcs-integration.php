@@ -57,7 +57,9 @@ if(!defined('CURL_SSLVERSION_TLSv1') ) define('CURL_SSLVERSION_TLSv1', 1);
 if(!defined('CURL_SSLVERSION_SSLv2') ) define('CURL_SSLVERSION_SSLv2', 2);
 if(!defined('CURL_SSLVERSION_SSLv3') ) define('CURL_SSLVERSION_SSLv3', 3);
 
-require(plugin_dir_path(__FILE__) .'includes/url_to_absolute.php');
+require_once(plugin_dir_path(__FILE__) .'includes/url_to_absolute.php');
+require_once(plugin_dir_path(__FILE__) .'includes/class-whmcs-http-curl.php');
+require_once(plugin_dir_path(__FILE__) .'includes/class-whmcs-http-streams.php');
 
 /* -------------------- WPMU DEV Dashboard Notice -------------------- */
 global $wpmudev_notices;
@@ -505,21 +507,9 @@ class WHMCS_Wordpress_Integration {
 		global $wp_version;
 
 		$result = false;
-		//Check the file stats for an updated file
-		$this->settings = get_option(WHMCS_SETTINGS_NAME);
 
 		if ( version_compare( $wp_version, '4.4', '>=') ) {
-			$http_transport_files = array(
-				ABSPATH . WPINC . '/class-wp-http-curl.php',
-				ABSPATH . WPINC . '/class-wp-http-streams.php'
-			);
-
-			$http_transport_files = apply_filters( 'whmcs_http_transport_files', $http_transport_files );// Give other plugins the chance to include custom transport files.
-
-			foreach( $http_transport_files as $key => $fname ){
-				$result = $this->http_patch_file($fname, $hard);
-			}
-
+			return true; // We don't use the patch since version 4.4. Instead, we nclude our own implementation of transport classes.
 		} else {
 			$fname = ABSPATH . WPINC . '/class-http.php';
 			$result = $this->http_patch_file($fname, $hard);
@@ -532,7 +522,8 @@ class WHMCS_Wordpress_Integration {
 		clearstatcache();
 		$stat = stat($fname);
 		$result = false;
-
+		//Check the file stats for an updated file
+		$this->settings = get_option(WHMCS_SETTINGS_NAME);
 		//if different update the file and save the new signature
 		if($this->settings['http_sig'][$fname] != $stat['size'].$stat['mtime'].$stat['ctime'] || $hard){
 			$fs = file_get_contents($fname);
@@ -1110,6 +1101,7 @@ class WHMCS_Wordpress_Integration {
 		// If no whmcs data then not for us
 		if( !isset($wp->query_vars[$this->WHMCS_PORTAL]) ) return;
 
+		add_filter( 'http_api_transports', array($this, 'include_whmcs_http_transports'), 100, 3 );
 
 		if($this->debug) $this->debug_print($wp);
 
@@ -2389,6 +2381,12 @@ class WHMCS_Wordpress_Integration {
 		}
 
 		return WHMCS_INTEGRATION_CACHE_URL . $fname . '?ver=' . uniqid();
+	}
+
+	public function include_whmcs_http_transports($transports, $args, $url){
+
+		array_unshift($transports, 'WHMCS_Curl', 'WHMCS_Streams');
+		return $transports;
 	}
 
 }
