@@ -57,7 +57,7 @@ if(!defined('CURL_SSLVERSION_TLSv1') ) define('CURL_SSLVERSION_TLSv1', 1);
 if(!defined('CURL_SSLVERSION_SSLv2') ) define('CURL_SSLVERSION_SSLv2', 2);
 if(!defined('CURL_SSLVERSION_SSLv3') ) define('CURL_SSLVERSION_SSLv3', 3);
 
-require(plugin_dir_path(__FILE__) .'lib/url_to_absolute.php');
+require(plugin_dir_path(__FILE__) .'includes/url_to_absolute.php');
 
 /* -------------------- WPMU DEV Dashboard Notice -------------------- */
 global $wpmudev_notices;
@@ -273,7 +273,7 @@ class WHMCS_Wordpress_Integration {
 		$cookie_content = __('<p>WHMCS WordPress Integration can now sync certain cookies between WHMCS and Wordpress so that downloads of protected files from WHMCS can work correctly in WordPress.</p> <p>This requires copying the "wp-integration.php" file in this plugin to the root of the WHMCS System installation.</p>', WHMCS_TEXT_DOMAIN);
 
 		//Setup any new feature notices
-		include WHMCS_INTEGRATION_DIR . 'lib/class-wp-help-pointers.php';
+		include WHMCS_INTEGRATION_DIR . 'includes/class-wp-help-pointers.php';
 		$pointers = array(
 		array(
 		'id' => 'wcp_endpoint',   // unique id for this pointer
