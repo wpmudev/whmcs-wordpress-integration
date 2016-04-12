@@ -2,6 +2,10 @@ Plugin Name: WHMCS Wordpress Integration
 Author: Arnold Bailey
 
 == Change Log ==
+==1.4.2==
+- Improvement: Abandoned WP Core HTTP API patch in favor of custom implementation.
+- Improvement: Code refactoring.
+
 ==1.4.1==
 - Fix: Patch for HTTP classes truncating file.
 

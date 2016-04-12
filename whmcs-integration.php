@@ -7,7 +7,7 @@ Author: WPMU DEV
 Author Uri: http://premium.wpmudev.org/
 Text Domain: wcp
 Domain Path: languages
-Version: 1.4.1
+Version: 1.4.2
 Network: false
 WDP ID: 263
 */
@@ -40,7 +40,7 @@ exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requir
 if(!function_exists('mcrypt_encrypt'))
 exit( __('<h3 style="color: #c00;">The WHMCS WordPress Integration plugin requires the PHP mcrypt extensions.</h3>', WHMCS_TEXT_DOMAIN) );
 
-define('WHMCS_INTEGRATION_VERSION','1.4.1');
+define('WHMCS_INTEGRATION_VERSION','1.4.2');
 define('WHMCS_SETTINGS_NAME','wcp_settings');
 define('WHMCS_TEMPLATE_OPTION','whmcs_template');
 define('WHMCS_TEXT_DOMAIN','wcp');
