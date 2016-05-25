@@ -1379,8 +1379,10 @@ class WHMCS_Wordpress_Integration {
 			$btnBulk = $xpath->query('//a[@id="btnBulkOptions"]')->item(0);
 			if($btnBulk && strpos( strtolower($this->whmcs_request_url), 'domainchecker.php')){
 				$toRemove = $btnBulk->nextSibling;
-				$btnBulk->nodeValue = trim($toRemove->nodeValue);
-				$btnBulk->parentNode->removeChild($toRemove);
+				if( false !== strpos( $toRemove->nodeValue, 'Bulk Options') ){
+					$btnBulk->nodeValue = trim($toRemove->nodeValue);
+					$btnBulk->parentNode->removeChild($toRemove);
+				}
 			}
 
 			$this->debug_print('Content Node: ');
