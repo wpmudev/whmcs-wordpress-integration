@@ -114,7 +114,7 @@ class WHMCS_Wordpress_Integration {
 
 		add_filter('query_vars', array(&$this,'on_query_vars'));
 
-		add_action('parse_request', array(&$this,'on_parse_request'));
+		add_action('parse_request', array(&$this,'on_parse_request'), 1);
 		add_action('send_headers', array(&$this,'on_send_headers'));
 		add_action('parse_query', array(&$this,'on_parse_query'));
 
@@ -870,7 +870,7 @@ class WHMCS_Wordpress_Integration {
 
 
 		// Need to use no conflict style instead of $
-		$text = str_replace('$(document)', 'jQuery(document)', $text );
+		$text = str_replace('$(', 'jQuery(', $text );
 		$text = str_replace('$.post(', 'jQuery.post(', $text );
 		$text = str_replace('method="get"', 'method="post"', $text ); //For vertical steps template
 		$text = str_replace('$("#', 'jQuery("#', $text );
@@ -1023,7 +1023,10 @@ class WHMCS_Wordpress_Integration {
 
 
 		// If no whmcs data then not for us
-		if( !isset($wp->query_vars[$this->WHMCS_PORTAL]) ) return;
+		if( !isset($wp->query_vars[$this->WHMCS_PORTAL]) &&
+			!( get_post($this->settings['content_page'])->post_name == $wp->query_vars['pagename']) ) {
+			return;
+		}
 
 		add_filter( 'http_api_transports', array($this, 'include_whmcs_http_transports'), 100, 3 );
 
