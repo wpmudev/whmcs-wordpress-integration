@@ -55,6 +55,8 @@ class WHMCS_Wordpress_Integration {
 	//WHMCS remote host home.
 	public $remote_host = '';
 
+	public $default_area = 'index.php';
+
 	//WHMCS last requested url after redirects
 	public $whmcs_request_url = '';
 
@@ -1027,7 +1029,9 @@ class WHMCS_Wordpress_Integration {
 			!( get_post($this->settings['content_page'])->post_name == $wp->query_vars['pagename']) ) {
 			return;
 		}
-
+		if( empty($wp->query_vars[$this->WHMCS_PORTAL]) ){
+			$wp->query_vars[$this->WHMCS_PORTAL] = $this->default_area;
+		}
 		add_filter( 'http_api_transports', array($this, 'include_whmcs_http_transports'), 100, 3 );
 
 		if($this->debug) $this->debug_print($wp);
@@ -1037,6 +1041,7 @@ class WHMCS_Wordpress_Integration {
 		$query_string = isset($_SERVER['QUERY_STRING']) ? $_SERVER['QUERY_STRING'] : '';
 
 		$this->whmcsportal['page'] = url_to_absolute($this->whmcs_base, $wp->query_vars[$this->WHMCS_PORTAL] .'?' . $query_string );
+		if($this->debug) $this->debug_print('$this->whmcsportal[page]: ' . $this->whmcsportal['page']);
 		$this->whmcsportal['script'] = $wp->query_vars[$this->WHMCS_PORTAL];
 		$this->whmcsportal['query'] = $query_string;
 
@@ -1326,7 +1331,7 @@ class WHMCS_Wordpress_Integration {
 		){
 			$content = $nodes->item(0);
 		} else {
-			$home_pattern = preg_quote(untrailingslashit( $this->remote_host ), '/') . '(\/\?|\?|\/$)';
+			$home_pattern = preg_quote(untrailingslashit( $this->remote_host ), '/') . '(\/index.php|)(\/\?|\?|\/$)';
 			if(preg_match( '/' . $home_pattern . '/', $this->whmcs_request_url)){
 				$is_home_page = true;
 				$content_top = $xpath->query('//section[@id="home-banner"]/div[1]')->item(0);
