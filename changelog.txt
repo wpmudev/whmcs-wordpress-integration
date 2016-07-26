@@ -2,6 +2,11 @@ Plugin Name: WHMCS Wordpress Integration
 Author: Arnold Bailey
 
 == Change Log ==
+==1.4.4==
+- Fix: Redirection issues on portal home page.
+- Fix: Error loading template css file.
+- Improvement: Support for third party javascript sources.
+
 ==1.4.3==
 - Fix: Layout issues and javascript conflicts in latest version of Six template.
 
