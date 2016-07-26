@@ -195,7 +195,7 @@ class WHMCS_Wordpress_Integration {
 	function wp_pointer_load(){
 
 		//var_dump(get_current_screen());
-		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-' . $this->template . '.css', array(), WHMCS_INTEGRATION_VERSION );
+		wp_register_style('whmcs_portal', WHMCS_INTEGRATION_URL . 'css/whmcs-' . $this->template . '.css', array(), WHMCS_INTEGRATION_VERSION );
 		wp_enqueue_style('whmcs_portal');
 
 		$cookie_content = __('<p>WHMCS WordPress Integration can now sync certain cookies between WHMCS and Wordpress so that downloads of protected files from WHMCS can work correctly in WordPress.</p> <p>This requires copying the "wp-integration.php" file in this plugin to the root of the WHMCS System installation.</p>', WHMCS_TEXT_DOMAIN);
@@ -338,7 +338,7 @@ class WHMCS_Wordpress_Integration {
 
 	function on_enqueue_scripts(){
 		wp_enqueue_script('jquery');
-		wp_register_style('whmcs_portal', plugin_dir_url(__FILE__) . 'css/whmcs-' . $this->template . '.css', array(), WHMCS_INTEGRATION_VERSION );
+		wp_register_style('whmcs_portal', WHMCS_INTEGRATION_URL . 'css/whmcs-' . $this->template . '.css', array(), WHMCS_INTEGRATION_VERSION );
 		wp_enqueue_style('whmcs_portal');
 
 
@@ -353,7 +353,7 @@ class WHMCS_Wordpress_Integration {
 		// Special tweeak for twentyfifteen theme.
 		if( 'Twenty Fifteen' == wp_get_theme()->get( 'Name' )){
 
-			wp_register_style('whmcs_six_tweentyfifteen', plugin_dir_url(__FILE__) . 'css/whmcs-' . $this->template . '-twentyfifteen.css', array(), WHMCS_INTEGRATION_VERSION );
+			wp_register_style('whmcs_six_tweentyfifteen', WHMCS_INTEGRATION_URL . 'css/whmcs-' . $this->template . '-twentyfifteen.css', array(), WHMCS_INTEGRATION_VERSION );
 			wp_enqueue_style('whmcs_six_tweentyfifteen');
 
 			$handle = 'twentyfifteen-script';
@@ -1161,7 +1161,6 @@ class WHMCS_Wordpress_Integration {
 		$this->css = $xpath->query('//link[@rel="stylesheet"]');
 		foreach($this->css as $css) {
 			$href = url_to_absolute($this->remote_host, $css->getAttribute('href') );
-
 			$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.css', '.min'), '', $href) );
 			if(strpos( strtolower($href), 'font-awesome.min.css')){
 				wp_enqueue_style($handle, '/wp-content/plugins/whmcs-wordpress-integration/css/font-awesome.min.css');
@@ -1251,7 +1250,8 @@ class WHMCS_Wordpress_Integration {
 			if(empty($src) ) { //Inline scripts
 				$root->appendChild($this->content->importNode($script, true));
 			}
-			$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.js', '.min'), '', $src) );
+			$handle = str_replace('/', '-', str_replace(array($this->remote_host, '.js', '.min', 'https', 'http', ':'), '', $src) );
+
 			if( (strpos( strtolower($src), '/templates/') !== false) )
 			{
 				$script->setAttribute('src', $this->cache_javascript($src));
@@ -1264,6 +1264,10 @@ class WHMCS_Wordpress_Integration {
 				} else {
 					wp_enqueue_script($handle, $src);
 				}
+			}
+
+			if(0 === strpos( strtolower($src), 'http') && ( strpos( strtolower($src), $this->remote_host ) === false ) ){
+				wp_enqueue_script($handle, $src);
 			}
 		}
 
