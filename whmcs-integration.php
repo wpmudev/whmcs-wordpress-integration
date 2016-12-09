@@ -63,16 +63,6 @@ include_once(plugin_dir_path(__FILE__) .'includes/http/class-whmcs-http-curl.php
 include_once(plugin_dir_path(__FILE__) .'includes/http/class-whmcs-http-streams.php');
 include_once(plugin_dir_path(__FILE__) .'includes/class-whmcs-wordpress-integration.php');
 
-/* -------------------- WPMU DEV Dashboard Notice -------------------- */
-global $wpmudev_notices;
-$wpmudev_notices[] = array( 'id'=> 263,
-'name'=> 'WHMCS WordPress Integration',
-'screens' => array(
-'toplevel_page_wcp-settings',
-) );
-
-include_once(plugin_dir_path(__FILE__) .'dash-notice/wpmudev-dash-notification.php');
-
 add_filter('widget_text', 'do_shortcode'); // Allows use of shortcodes in widgets
 
 $WHMCS_Wordpress_Integration = new WHMCS_Wordpress_Integration();
